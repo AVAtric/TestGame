@@ -62,7 +62,7 @@ class SnakeGame:
         # Handle game over state
         if self.game_status == GameStatus.GAME_OVER:
             # R or r means restart
-            if direction == Direction.RIGHT:
+            if direction == 'RESET':
                 debug_log("handle_input: Restarting game")
                 self.init_game()
                 return True
