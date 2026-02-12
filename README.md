@@ -34,13 +34,15 @@ pip install -e .
 ### Using console script (after installation)
 
 ```bash
+source .venv/bin/activate
 snakeclaw
 ```
 
 ### Using Python module
 
 ```bash
-python -m snakeclaw
+source .venv/bin/activate
+python3 -m snakeclaw
 ```
 
 ## Controls
@@ -56,7 +58,7 @@ python -m snakeclaw
 1. Press **Space** to start the game
 2. Use arrow keys or WASD to control the snake
 3. Eat the **@** food to grow and increase your score
-4. Avoid hitting the walls or your own tail
+4. Avoid hitting the walls or your own tail or body
 5. After game over, press **R** to restart or **Q** to quit
 
 ## Architecture
@@ -73,6 +75,8 @@ TestGame/
 │   └── ui.py            # Terminal UI using curses
 ├── tests/
 │   └── test_model.py    # Unit tests for game logic
+│   └── test_game.py    
+│   └── test_ui.py    
 ├── setup.py             # Package setup configuration
 └── README.md            # This file
 ```
@@ -81,29 +85,6 @@ TestGame/
 
 - **Separation of concerns**: Game logic is separated from UI and input handling
 - **Testability**: Non-UI logic (movement, collision, food placement) is completely unit testable
-- **Type hints**: All functions use Python type hints for better code clarity
-- **Minimal dependencies**: Only uses Python standard library (curses is standard on Unix-like systems)
-
-### Platform Considerations
-
-#### macOS/Linux
-- curses is available by default on Unix-like systems
-- No additional dependencies required
-
-#### Windows
-- **Important**: Windows does not have a native curses library
-- **Option 1**: Use Windows Terminal with Git Bash or similar (recommended)
-- **Option 2**: Use WSL (Windows Subsystem for Linux)
-- **Option 3**: Use an alternative UI library (would require changing the implementation)
-
-If you encounter curses-related errors on Windows, make sure you're using a terminal that supports curses.
-
-### Why curses?
-- ✅ Standard in Unix-like systems (Linux, macOS)
-- ✅ No external dependencies required
-- ✅ Excellent for terminal-based games
-- ✅ Provides good performance for simple games
-- ✅ Works with all major terminal emulators
 
 ### Game Settings
 
@@ -118,7 +99,7 @@ MIT License
 
 ## Author
 
-Your Name (or "Coding Agent")
+Coding Agent
 
 ## Credits
 
