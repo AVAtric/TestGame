@@ -44,14 +44,18 @@ class SnakeGame:
         """
         direction = self.ui.get_input()
 
-        # None means no input (non-blocking mode) or quit command
+        # Debug output
         if direction is None:
+            # No input received
             return True
+
+        print(f"DEBUG: Input received: {direction}, status: {self.game_status}")
 
         # Handle game over state
         if self.game_status == GameStatus.GAME_OVER:
             # R or r means restart
             if direction == Direction.RIGHT:
+                print("DEBUG: Restarting game")
                 self.init_game()
                 return True
             # Q or q means quit
@@ -60,11 +64,13 @@ class SnakeGame:
         # Handle playing state
         # Q or q means quit
         if direction == Direction.UP:
+            print("DEBUG: Quitting game")
             self.game_status = GameStatus.QUIT
             return False
 
         # Update snake direction (ignore RIGHT direction change)
         if direction != Direction.RIGHT:
+            print(f"DEBUG: Setting direction to {direction}")
             self.snake.set_direction(direction)
 
         return True

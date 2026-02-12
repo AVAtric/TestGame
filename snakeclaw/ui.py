@@ -141,25 +141,40 @@ class CursesUI:
         except curses.error:
             return None
 
+        # Debug output for keys
+        if key in [ord('w'), ord('W'), ord('s'), ord('S'), ord('a'), ord('A'),
+                   ord('d'), ord('D'), ord('r'), ord('R'), ord('q'), ord('Q')]:
+            print(f"DEBUG: Key pressed: {key}, char: {chr(key) if key > 0 else 'N/A'}")
+
         if key == curses.KEY_UP:
+            print("DEBUG: Returning Direction.UP")
             return Direction.UP
         elif key == curses.KEY_DOWN:
+            print("DEBUG: Returning Direction.DOWN")
             return Direction.DOWN
         elif key == curses.KEY_LEFT:
+            print("DEBUG: Returning Direction.LEFT")
             return Direction.LEFT
         elif key == curses.KEY_RIGHT:
+            print("DEBUG: Returning Direction.RIGHT")
             return Direction.RIGHT
         elif key == ord('w') or key == ord('W'):
+            print("DEBUG: Returning Direction.UP (W key)")
             return Direction.UP
         elif key == ord('s') or key == ord('S'):
+            print("DEBUG: Returning Direction.DOWN (S key)")
             return Direction.DOWN
         elif key == ord('a') or key == ord('A'):
+            print("DEBUG: Returning Direction.LEFT (A key)")
             return Direction.LEFT
         elif key == ord('d') or key == ord('D'):
+            print("DEBUG: Returning Direction.RIGHT (D key)")
             return Direction.RIGHT
         elif key == ord('q') or key == ord('Q'):
+            print("DEBUG: Returning None (Quit command)")
             return None  # Quit command
         elif key == ord('r') or key == ord('R'):
+            print("DEBUG: Returning Direction.RIGHT (Restart command)")
             return Direction.RIGHT  # Restart command
         return None
 
