@@ -8,6 +8,13 @@ from .model import Direction, GameStatus, Snake, Food
 from .ui import CursesUI
 
 
+# Debug logging to file
+def debug_log(message: str) -> None:
+    """Write debug message to file."""
+    with open('debug.log', 'a') as f:
+        f.write(f"{message}\n")
+
+
 class SnakeGame:
     """Main game controller."""
 
@@ -47,30 +54,32 @@ class SnakeGame:
         # Debug output
         if direction is None:
             # No input received
+            debug_log(f"handle_input: Got None from get_input")
             return True
 
-        print(f"DEBUG: Input received: {direction}, status: {self.game_status}")
+        debug_log(f"handle_input: Input received: {direction}, status: {self.game_status}")
 
         # Handle game over state
         if self.game_status == GameStatus.GAME_OVER:
             # R or r means restart
             if direction == Direction.RIGHT:
-                print("DEBUG: Restarting game")
+                debug_log("handle_input: Restarting game")
                 self.init_game()
                 return True
             # Q or q means quit
+            debug_log("handle_input: Quit requested")
             return False
 
         # Handle playing state
         # Q or q means quit
         if direction == Direction.UP:
-            print("DEBUG: Quitting game")
+            debug_log("handle_input: Quitting game")
             self.game_status = GameStatus.QUIT
             return False
 
         # Update snake direction (ignore RIGHT direction change)
         if direction != Direction.RIGHT:
-            print(f"DEBUG: Setting direction to {direction}")
+            debug_log(f"handle_input: Setting direction to {direction}")
             self.snake.set_direction(direction)
 
         return True

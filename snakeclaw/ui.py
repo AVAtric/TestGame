@@ -6,6 +6,13 @@ from typing import Callable, Optional
 from .model import Direction, GameStatus
 
 
+# Debug logging to file
+def debug_log(message: str) -> None:
+    """Write debug message to file."""
+    with open('debug.log', 'a') as f:
+        f.write(f"{message}\n")
+
+
 class CursesUI:
     """Terminal UI implementation using curses."""
 
@@ -134,48 +141,53 @@ class CursesUI:
             Direction based on key press, or None if no input
         """
         if not self.stdscr:
+            debug_log("get_input: stdscr is None")
             return None
 
         try:
             key = self.stdscr.getch()
-        except curses.error:
+            debug_log(f"get_input: Raw key code = {key}")
+        except curses.error as e:
+            debug_log(f"get_input: curses.error = {e}")
             return None
 
         # Debug output for keys
         if key in [ord('w'), ord('W'), ord('s'), ord('S'), ord('a'), ord('A'),
                    ord('d'), ord('D'), ord('r'), ord('R'), ord('q'), ord('Q')]:
-            print(f"DEBUG: Key pressed: {key}, char: {chr(key) if key > 0 else 'N/A'}")
+            debug_log(f"get_input: Recognized key = {key}, char = {chr(key) if key > 0 else 'N/A'}")
 
         if key == curses.KEY_UP:
-            print("DEBUG: Returning Direction.UP")
+            debug_log("get_input: Returning Direction.UP")
             return Direction.UP
         elif key == curses.KEY_DOWN:
-            print("DEBUG: Returning Direction.DOWN")
+            debug_log("get_input: Returning Direction.DOWN")
             return Direction.DOWN
         elif key == curses.KEY_LEFT:
-            print("DEBUG: Returning Direction.LEFT")
+            debug_log("get_input: Returning Direction.LEFT")
             return Direction.LEFT
         elif key == curses.KEY_RIGHT:
-            print("DEBUG: Returning Direction.RIGHT")
+            debug_log("get_input: Returning Direction.RIGHT")
             return Direction.RIGHT
         elif key == ord('w') or key == ord('W'):
-            print("DEBUG: Returning Direction.UP (W key)")
+            debug_log("get_input: Returning Direction.UP (W key)")
             return Direction.UP
         elif key == ord('s') or key == ord('S'):
-            print("DEBUG: Returning Direction.DOWN (S key)")
+            debug_log("get_input: Returning Direction.DOWN (S key)")
             return Direction.DOWN
         elif key == ord('a') or key == ord('A'):
-            print("DEBUG: Returning Direction.LEFT (A key)")
+            debug_log("get_input: Returning Direction.LEFT (A key)")
             return Direction.LEFT
         elif key == ord('d') or key == ord('D'):
-            print("DEBUG: Returning Direction.RIGHT (D key)")
+            debug_log("get_input: Returning Direction.RIGHT (D key)")
             return Direction.RIGHT
         elif key == ord('q') or key == ord('Q'):
-            print("DEBUG: Returning None (Quit command)")
+            debug_log("get_input: Returning None (Quit command)")
             return None  # Quit command
         elif key == ord('r') or key == ord('R'):
-            print("DEBUG: Returning Direction.RIGHT (Restart command)")
+            debug_log("get_input: Returning Direction.RIGHT (Restart command)")
             return Direction.RIGHT  # Restart command
+
+        debug_log(f"get_input: Key {key} did not match any direction, returning None")
         return None
 
     def show_game_over(self, score: int) -> None:
