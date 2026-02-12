@@ -25,7 +25,7 @@ class GameStatus(Enum):
 class Snake:
     """Snake representation with movement and collision detection."""
 
-    def __init__(self, start_pos: Tuple[int, int], length: int = 3, direction: Direction = Direction.RIGHT):
+    def __init__(self, start_pos: Tuple[int, int], length: int = 3, direction: Direction = Direction.UP):
         """
         Initialize the snake.
 
@@ -49,12 +49,11 @@ class Snake:
         head = self.body[0]
         new_head = (head[0] + self.direction.value[0], head[1] + self.direction.value[1])
 
+        # Insert new head at the front
+        self.body.insert(0, new_head)
+
         # If we should grow, don't remove the tail
-        if self.grow:
-            self.body.insert(0, new_head)
-            self.grow = False
-        else:
-            self.body.insert(0, new_head)
+        if not self.grow:
             self.body.pop()
 
     def set_direction(self, direction: Direction) -> None:
@@ -65,8 +64,8 @@ class Snake:
             return
         self.direction = direction
 
-    @classmethod
-    def _opposite_direction(cls, direction: Direction) -> Direction:
+    @staticmethod
+    def _opposite_direction(direction: Direction) -> Direction:
         """Get the opposite direction."""
         if direction == Direction.UP:
             return Direction.DOWN
@@ -132,11 +131,13 @@ class Snake:
         if new_head[0] < 0 or new_head[0] >= height or new_head[1] < 0 or new_head[1] >= width:
             return True
 
-        # Self collision (exclude tail if not growing, exclude head to avoid false positive)
+        # Self collision - check all body parts except tail if not growing
+        # The snake can move into its own head position
         if self.grow:
             body_to_check = self.body
         else:
             body_to_check = self.body[:-1]
+
         if new_head in body_to_check:
             return True
 

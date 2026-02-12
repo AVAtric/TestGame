@@ -109,8 +109,8 @@ class SnakeGame:
 
         # Move snake
         self.snake.move()
-
-        # No need to reset grow flag here; it's handled in move()
+        # Reset grow flag after moving (since we don't grow during the move)
+        self.snake.grow = False
 
     def render(self) -> None:
         """Render the game."""

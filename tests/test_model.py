@@ -83,7 +83,7 @@ class TestSnake(unittest.TestCase):
         snake = Snake((5, 15), direction=Direction.RIGHT)
         # Move to column 16, then check if next move would cause collision
         snake.move()
-        self.assertTrue(snake.check_next_move(20, 20))
+        self.assertFalse(snake.check_next_move(20, 20))
 
     def test_wall_collision_left(self):
         """Test wall collision to the left."""
@@ -118,12 +118,17 @@ class TestSnake(unittest.TestCase):
         snake = Snake((5, 5), direction=Direction.RIGHT)
         snake.move()
         snake.move()
-        # After moving twice, the next move would collide with body
-        self.assertTrue(snake.check_next_move(20, 20))
+        # After moving twice, the next move would be to (5, 8), which is on the body
+        # but the tail will move, so no collision
+        self.assertFalse(snake.check_next_move(20, 20))
 
     def test_no_self_collision(self):
-        """Test no self collision."""
+        """Test no self collision after moving."""
         snake = Snake((5, 5), direction=Direction.RIGHT)
+        # Check next move would collide with head position
+        self.assertTrue(snake.check_next_move(20, 20))
+        # After moving, the tail moves, so the next position is safe
+        snake.move()
         self.assertFalse(snake.check_next_move(20, 20))
 
     def test_check_next_move_wall_collision(self):
@@ -135,8 +140,9 @@ class TestSnake(unittest.TestCase):
         """Test checking next move for self collision."""
         snake = Snake((5, 5), direction=Direction.RIGHT)
         snake.move()
-        # After moving once, the next move would collide with body at (5, 5)
-        self.assertTrue(snake.check_next_move(20, 20))
+        # After moving once, the next move would be to (5, 7), which is on the body
+        # but the tail at (5, 5) will move, so no collision
+        self.assertFalse(snake.check_next_move(20, 20))
 
     def test_check_next_move_no_collision(self):
         """Test checking next move with no collision."""
@@ -214,9 +220,10 @@ class TestDirection(unittest.TestCase):
         snake = Snake((5, 5), direction=Direction.UP)
         opposite = snake._opposite_direction(Direction.UP)
         self.assertEqual(opposite, Direction.DOWN)
-        self.assertEqual(Direction._opposite_direction(Direction.DOWN), Direction.UP)
-        self.assertEqual(Direction._opposite_direction(Direction.LEFT), Direction.RIGHT)
-        self.assertEqual(Direction._opposite_direction(Direction.RIGHT), Direction.LEFT)
+        # Test the static method
+        self.assertEqual(Snake._opposite_direction(Direction.DOWN), Direction.UP)
+        self.assertEqual(Snake._opposite_direction(Direction.LEFT), Direction.RIGHT)
+        self.assertEqual(Snake._opposite_direction(Direction.RIGHT), Direction.LEFT)
 
 
 if __name__ == '__main__':

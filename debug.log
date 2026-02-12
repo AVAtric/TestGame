@@ -1,0 +1,12 @@
+handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
+handle_input: Got None from get_input
+handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
+handle_input: Quit requested
+handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
+handle_input: Restarting game
+handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
+handle_input: Got None from get_input
+handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
+handle_input: Quit requested
+handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
+handle_input: Restarting game
