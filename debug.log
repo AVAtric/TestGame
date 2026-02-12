@@ -26,3 +26,4 @@ handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
 handle_input: Input received: Direction.DOWN, status: GameStatus.PLAYING
 handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
 handle_input: Input received: Direction.DOWN, status: GameStatus.PLAYING
+handle_input: Input received: Direction.RIGHT, status: GameStatus.PLAYING
