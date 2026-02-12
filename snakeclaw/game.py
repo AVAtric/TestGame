@@ -52,11 +52,11 @@ class SnakeGame:
             if direction == Direction.RIGHT:  # Any direction means restart
                 self.init_game()
                 return True
-            elif direction == Direction.UP:  # Q or similar
+            elif direction == Direction.UP:  # Q or similar (None for quit)
                 return False
             return True
 
-        if direction == Direction.RIGHT:  # Q or similar
+        if direction == Direction.UP:  # Q or similar (None for quit)
             self.game_status = GameStatus.QUIT
             return False
 

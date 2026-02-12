@@ -158,9 +158,9 @@ class CursesUI:
         elif key == ord('d') or key == ord('D'):
             return Direction.RIGHT
         elif key == ord('q') or key == ord('Q'):
-            return Direction.RIGHT  # Just to stop movement
+            return None  # Quit command
         elif key == ord('r') or key == ord('R'):
-            return Direction.RIGHT  # Just to stop movement
+            return Direction.RIGHT  # Restart command
         return None
 
     def show_game_over(self, score: int) -> None:

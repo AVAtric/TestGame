@@ -106,8 +106,8 @@ def test_handle_input_quit_and_restart():
             self._inputs = list(inputs)
     ui = TestUI(10, 10)
     game.ui = ui
-    # Simulate quitting when game is playing
-    ui.set_inputs([Direction.RIGHT])  # RIGHT interpreted as quit
+    # Simulate quitting when game is playing (using Direction.UP as quit command)
+    ui.set_inputs([Direction.UP])  # UP interpreted as quit
     continue_game = game.handle_input()
     assert continue_game is False
     assert game.game_status == game.game_status.QUIT
