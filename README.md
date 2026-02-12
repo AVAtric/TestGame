@@ -24,17 +24,9 @@ A simple Snake game for the terminal/console written in Python.
 ### Using pip (recommended)
 
 ```bash
-cd TestGame
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
-```
-
-### Manual Installation
-
-If you don't want to install via pip, you can run the game directly:
-
-```bash
-cd TestGame
-python -m snakeclaw
 ```
 
 ## Running the Game
@@ -48,15 +40,7 @@ snakeclaw
 ### Using Python module
 
 ```bash
-cd TestGame
 python -m snakeclaw
-```
-
-### From the source directory
-
-```bash
-cd TestGame
-python snakeclaw/__main__.py
 ```
 
 ## Controls
@@ -99,29 +83,6 @@ TestGame/
 - **Testability**: Non-UI logic (movement, collision, food placement) is completely unit testable
 - **Type hints**: All functions use Python type hints for better code clarity
 - **Minimal dependencies**: Only uses Python standard library (curses is standard on Unix-like systems)
-
-## Development
-
-### Running Tests
-
-```bash
-cd TestGame
-pytest tests/
-```
-
-### Running with specific test file
-
-```bash
-pytest tests/test_model.py
-```
-
-### Running with verbose output
-
-```bash
-pytest tests/ -v
-```
-
-## Notes
 
 ### Platform Considerations
 
