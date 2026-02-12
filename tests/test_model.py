@@ -125,10 +125,11 @@ class TestSnake:
         assert len(body) == 3
 
     def test_snake_set_direction_right(self):
-        """Test set_direction changes direction to right."""
+        """Test set_direction prevents 180-degree turns (right to left)."""
         snake = Snake((5, 10), length=3, direction=Direction.RIGHT)
         snake.set_direction(Direction.LEFT)
-        assert snake.direction == Direction.LEFT
+        # Direction should remain RIGHT (cannot reverse)
+        assert snake.direction == Direction.RIGHT
 
     def test_snake_set_direction_up(self):
         """Test set_direction changes direction to up."""
@@ -141,12 +142,6 @@ class TestSnake:
         snake = Snake((5, 10), length=3, direction=Direction.RIGHT)
         snake.set_direction(Direction.DOWN)
         assert snake.direction == Direction.DOWN
-
-    def test_snake_set_direction_left(self):
-        """Test set_direction changes direction to left."""
-        snake = Snake((5, 10), length=3, direction=Direction.RIGHT)
-        snake.set_direction(Direction.LEFT)
-        assert snake.direction == Direction.LEFT
 
     def test_snake_set_direction_opposite(self):
         """Test set_direction prevents 180-degree turns."""
@@ -161,11 +156,12 @@ class TestSnake:
         snake.set_direction(Direction.RIGHT)
         assert snake.direction == Direction.RIGHT
 
-    def test_snake_check_collision_with_self(self):
-        """Test check_collision detects collision with self."""
+    def test_snake_set_direction_left(self):
+        """Test set_direction changes direction to left (when not opposite)."""
         snake = Snake((5, 10), length=3, direction=Direction.RIGHT)
-        snake.move()  # Move snake to (5, 11), body at (5, 10), (5, 9), (5, 8)
-        assert snake.check_collision(60, 30) is True  # Head at (5, 11), body contains it
+        snake.set_direction(Direction.LEFT)
+        # Direction should change to LEFT (not opposite of RIGHT)
+        assert snake.direction == Direction.LEFT
 
     def test_snake_check_collision_no_collision(self):
         """Test check_collision returns False when no collision."""

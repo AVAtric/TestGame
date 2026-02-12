@@ -6,6 +6,7 @@ from snakeclaw.game import SnakeGame
 from snakeclaw.ui import CursesUI
 import sys
 
+
 class TestDirection:
     """Tests for Direction enum."""
 
@@ -406,5 +407,3 @@ class TestIntegration:
 
         assert game.score > 0
         assert len(game.snake.get_body()) > 3
-"""
-
