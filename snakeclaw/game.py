@@ -1,185 +1,85 @@
-"""Main game controller for Snake."""
+"""Main game controller — thin shell connecting engine + UI."""
 
-import curses
+from __future__ import annotations
+
 import time
-from typing import Optional
 
-from .model import Direction, GameStatus, Snake, Food
+from .engine import GameEngine
+from .model import GameState
 from .ui import CursesUI
-
-
-# Debug logging to file
-def debug_log(message: str) -> None:
-    """Write debug message to file."""
-    with open('debug.log', 'a') as f:
-        f.write(f"{message}\n")
 
 
 class SnakeGame:
     """Main game controller."""
 
     def __init__(self, width: int = 60, height: int = 30):
-        """
-        Initialize the Snake game.
-
-        Args:
-            width: Playfield width in columns
-            height: Playfield height in rows
-        """
         self.width = width
         self.height = height
+        self.engine = GameEngine(width, height)
         self.ui = CursesUI(width, height)
-        self.snake: Optional[Snake] = None
-        self.food: Optional[Food] = None
-        self.score: int = 0
-        self.game_status: GameStatus = GameStatus.PLAYING
-        self.tick_rate: float = 0.25  # 4 moves per second (increased for better input handling)
-
-    def init_game(self) -> None:
-        """Initialize or reinitialize the game."""
-        self.snake = Snake((self.height // 2, self.width // 4), length=3, direction=Direction.RIGHT)
-        self.food = Food(self.width, self.height)
-        self.score = 0
-        self.game_status = GameStatus.PLAYING
-
-    def handle_input(self) -> bool:
-        """
-        Handle keyboard input.
-
-        Returns:
-            True if game should continue, False if quit requested
-        """
-        direction = self.ui.get_input()
-
-        # Debug output
-        if direction is None:
-            # No input received
-            debug_log(f"handle_input: Got None from get_input")
-            return True
-
-        debug_log(f"handle_input: Input received: {direction}, status: {self.game_status}")
-
-        # Handle game over state
-        if self.game_status == GameStatus.GAME_OVER:
-            # R or r means restart
-            if direction == Direction.RESET:
-                debug_log("handle_input: Restarting game")
-                self.init_game()
-                return True
-            # Quit request
-            if direction == Direction.QUIT:
-                debug_log("handle_input: Quit requested")
-                return False
-            return True
-
-        # Handle playing state
-        # Quit request
-        if direction == Direction.QUIT:
-            debug_log("handle_input: Quit requested")
-            self.game_status = GameStatus.QUIT
-            return False
-
-        # Direction input - only set if valid
-        if direction in [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
-            self.snake.set_direction(direction)
-
-        return True
-
-    def update(self) -> None:
-        """Update game state."""
-        if self.game_status != GameStatus.PLAYING or self.snake is None:
-            return
-
-        # Check for collision before moving
-        if self.snake.check_next_move(self.width, self.height):
-            self.game_status = GameStatus.GAME_OVER
-            return
-
-        # Determine next head position
-        next_head = (
-            self.snake.body[0][0] + self.snake.direction.value[0],
-            self.snake.body[0][1] + self.snake.direction.value[1],
-        )
-
-        # Check for food before moving
-        if self.food.check_eaten(next_head):
-            self.score += 1
-            self.snake.grow_snake()
-            self.food.place(snake_body=self.snake.get_body())
-
-        # Move snake
-        self.snake.move()
-        # Reset grow flag after moving (since we don't grow during the move)
-        self.snake.grow = False
-
-    def render(self) -> None:
-        """Render the game."""
-        if self.game_status == GameStatus.GAME_OVER:
-            self.ui.show_game_over(self.score)
-            return
-
-        # Clear and draw border
-        self.ui.clear()
-        self.ui.draw_border()
-
-        # Draw game objects
-        self.ui.draw_snake(self.snake.get_body())
-        self.ui.draw_food(self.food.get_position())
-
-        # Draw score
-        self.ui.draw_score(self.score, self.game_status)
-
-        # Refresh screen
-        self.ui.refresh()
 
     def run(self) -> None:
-        """Run the main game loop."""
         self.ui.start()
-
-        # Show start screen
-        self.ui.show_start_screen()
-
-        # Wait for start
-        if not self.ui.wait_for_start():
+        try:
+            self._loop()
+        finally:
             self.ui.stop()
-            return
 
-        # Initialize game
-        self.init_game()
+    def _loop(self) -> None:
+        last_tick = time.time()
 
-        running = True
-        while running:
-            # Main game loop
-            last_tick = time.time()
-            while self.game_status == GameStatus.PLAYING:
-                # Check for input
-                if not self.handle_input():
-                    running = False
-                    break
+        while self.engine.state != GameState.QUIT:
+            state = self.engine.state
 
-                # Update game state
-                self.update()
+            # --- Menu / overlays (blocking input) ---
+            if state == GameState.MENU:
+                self.ui.show_menu(self.engine.menu_items,
+                                  self.engine.menu_index,
+                                  self.engine.high_scores.best)
+                inp = self.ui.wait_for_key()
+                self.engine.handle_input(inp)
+                continue
 
-                # Render
-                self.render()
+            if state == GameState.HIGH_SCORES:
+                entries = self.engine.high_scores.get_top()
+                self.ui.show_high_scores(entries)
+                inp = self.ui.wait_for_key()
+                self.engine.handle_input(inp)
+                continue
 
-                # Maintain tick rate
-                current_time = time.time()
-                elapsed = current_time - last_tick
-                if elapsed < self.tick_rate:
-                    time.sleep(self.tick_rate - elapsed)
-                last_tick = time.time()
+            if state == GameState.HELP:
+                self.ui.show_help()
+                inp = self.ui.wait_for_key()
+                self.engine.handle_input(inp)
+                continue
 
-            if not running:
-                break
+            if state == GameState.GAME_OVER:
+                self.ui.show_game_over(self.engine.score,
+                                       self.engine.high_score)
+                inp = self.ui.wait_for_key()
+                self.engine.handle_input(inp)
+                continue
 
-            # Game over handling - wait for restart or quit
-            while self.game_status == GameStatus.GAME_OVER:
-                if not self.handle_input():
-                    running = False
-                    break
+            # --- Playing / Paused (non-blocking input) ---
+            inp = self.ui.get_input()
+            self.engine.handle_input(inp)
 
-        self.ui.stop()
+            if self.engine.state == GameState.PLAYING:
+                now = time.time()
+                if now - last_tick >= self.engine.tick_rate:
+                    self.engine.tick()
+                    last_tick = now
+
+            # Render
+            if self.engine.state in (GameState.PLAYING, GameState.PAUSED):
+                self.ui.render_frame(
+                    self.engine.snake.get_body(),
+                    self.engine.food.get_position(),
+                    self.engine.score,
+                    self.engine.high_score,
+                    self.engine.level,
+                    paused=(self.engine.state == GameState.PAUSED),
+                )
 
 
 def main():
@@ -187,8 +87,5 @@ def main():
     try:
         game = SnakeGame()
         game.run()
-    except Exception as e:
-        print(f"Error: {e}")
-        if 'ui' in locals() and game.ui:
-            game.ui.stop()
-        raise
+    except KeyboardInterrupt:
+        pass

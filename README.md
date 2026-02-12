@@ -1,15 +1,18 @@
 # Snake Claw
 
-A simple Snake game for the terminal/console written in Python.
+A polished Snake game for the terminal/console written in Python.
 
 ## Features
 
-- 🎮 Classic Snake gameplay
-- 🖥️ Terminal UI using curses
+- 🎮 Classic Snake gameplay with smooth console rendering
+- 🖥️ Terminal UI using curses with colour support
 - ⌨️ Arrow keys or WASD controls
-- 📊 Score tracking
-- 🔄 Restart game after game over
-- 🧪 Unit tests for game logic
+- 📊 Score, high-score, and level tracking (HUD)
+- ⏸ Pause / Resume (P)
+- 🔄 Restart (R) without restarting the process
+- 📋 Main menu: Start Game / High Scores / Help / Quit
+- 🏆 Persistent high-score table (top 10, JSON)
+- 🧪 116 unit tests covering logic, state, and persistence
 - ✨ Type hints throughout
 - 📦 Minimal dependencies
 
@@ -47,19 +50,24 @@ python3 -m snakeclaw
 
 ## Controls
 
-- **Arrow Keys**: Move up, down, left, right
-- **W / A / S / D**: Alternative movement keys (up, left, down, right)
-- **Space**: Start the game
-- **R**: Restart game after game over
-- **Q**: Quit game
+| Key              | Action                          |
+|------------------|---------------------------------|
+| Arrow keys / WASD | Move the snake                |
+| P                | Pause / Resume                  |
+| R                | Restart game                    |
+| M / Esc          | Back to menu (game over screen) |
+| Enter / Space    | Select menu item                |
+| Q                | Quit                            |
 
 ## Gameplay
 
-1. Press **Space** to start the game
-2. Use arrow keys or WASD to control the snake
-3. Eat the **@** food to grow and increase your score
-4. Avoid hitting the walls or your own tail or body
-5. After game over, press **R** to restart or **Q** to quit
+1. Use the **main menu** to start a game, view high scores, or read help
+2. Control the snake with arrow keys or WASD
+3. Eat **●** food to grow, score points, and increase speed
+4. Speed increases every 5 points (6 levels)
+5. Avoid hitting the walls or your own body
+6. After game over, press **R** to restart, **M** for menu, or **Q** to quit
+7. High scores persist across sessions in `snakeclaw/data/highscores.json`
 
 ## Architecture
 
@@ -68,30 +76,42 @@ python3 -m snakeclaw
 ```
 TestGame/
 ├── snakeclaw/
-│   ├── __init__.py      # Package initialization
+│   ├── __init__.py      # Package init
 │   ├── __main__.py      # Entry point for python -m snakeclaw
-│   ├── game.py          # Main game controller
-│   ├── model.py         # Game models (Snake, Food, etc.)
-│   └── ui.py            # Terminal UI using curses
+│   ├── engine.py        # Pure game engine (no I/O) — logic, state, scores
+│   ├── game.py          # Thin controller connecting engine ↔ UI
+│   ├── model.py         # Data models (Snake, Food, Direction, enums)
+│   ├── ui.py            # Terminal renderer using curses
+│   └── data/
+│       └── highscores.json  # Persisted high scores (auto-created)
 ├── tests/
-│   └── test_model.py    # Unit tests for game logic
-│   └── test_game.py    
-│   └── test_ui.py    
-├── setup.py             # Package setup configuration
+│   ├── test_model.py    # Snake, Food, Direction tests
+│   ├── test_engine.py   # Engine logic, state transitions, high scores
+│   ├── test_game.py     # Integration smoke tests
+│   └── test_ui.py       # Key mapping & rendering tests
+├── setup.py             # Package setup
 └── README.md            # This file
 ```
 
 ### Design Principles
 
-- **Separation of concerns**: Game logic is separated from UI and input handling
-- **Testability**: Non-UI logic (movement, collision, food placement) is completely unit testable
+- **Separation of concerns**: `engine.py` contains all game logic with zero terminal dependency; `ui.py` is a thin curses renderer
+- **Testability**: The engine is fully testable without a real terminal (116 tests, all pure-logic)
+- **State machine**: Clean `GameState` enum drives menu → playing → paused → game over transitions
 
 ### Game Settings
 
-- **Playfield size**: 60 columns x 30 rows (configurable in `SnakeGame` class)
-- **Tick rate**: 10 moves per second (configurable in `SnakeGame` class)
+- **Playfield size**: 60 × 30 (configurable in `GameEngine`)
+- **Speed levels**: 6 tiers from 0.18 s to 0.07 s per tick
 - **Snake initial length**: 3 segments
-- **Food appearance**: @ symbol
+- **Food**: ● symbol | Snake head: ◆ | Body: █
+
+## Running Tests
+
+```bash
+source .venv/bin/activate
+python3 -m pytest tests/ -v
+```
 
 ## License
 
@@ -100,7 +120,3 @@ MIT License
 ## Author
 
 Coding Agent
-
-## Credits
-
-Snake Claw is a simple implementation of the classic Snake game for the terminal.

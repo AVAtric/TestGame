@@ -1,48 +1,87 @@
 """Terminal UI using curses for Snake game."""
 
+from __future__ import annotations
+
 import curses
-from typing import Callable, Optional
+from typing import List, Optional, Tuple, Union
 
-from .model import Direction, GameStatus
+from .model import Action, Direction, GameState
 
 
-# Debug logging to file
-def debug_log(message: str) -> None:
-    """Write debug message to file."""
-    with open('debug.log', 'a') as f:
-        f.write(f"{message}\n")
+# ---------------------------------------------------------------------------
+# Key mapping
+# ---------------------------------------------------------------------------
+
+def map_key(key: int) -> Optional[Union[Direction, Action]]:
+    """Convert a curses key code to a Direction or Action."""
+    mapping = {
+        curses.KEY_UP: Direction.UP,
+        curses.KEY_DOWN: Direction.DOWN,
+        curses.KEY_LEFT: Direction.LEFT,
+        curses.KEY_RIGHT: Direction.RIGHT,
+        ord('w'): Direction.UP, ord('W'): Direction.UP,
+        ord('s'): Direction.DOWN, ord('S'): Direction.DOWN,
+        ord('a'): Direction.LEFT, ord('A'): Direction.LEFT,
+        ord('d'): Direction.RIGHT, ord('D'): Direction.RIGHT,
+        ord('q'): Action.QUIT, ord('Q'): Action.QUIT,
+        ord('r'): Action.RESET, ord('R'): Action.RESET,
+        ord('p'): Action.PAUSE, ord('P'): Action.PAUSE,
+        ord('m'): Action.MENU, ord('M'): Action.MENU,
+        ord(' '): Action.SELECT,
+        ord('\n'): Action.SELECT,
+        10: Action.SELECT,   # enter
+        13: Action.SELECT,   # carriage-return
+        27: Action.MENU,     # escape → back to menu
+    }
+    return mapping.get(key)
+
+
+# ---------------------------------------------------------------------------
+# Curses renderer
+# ---------------------------------------------------------------------------
+
+# Box-drawing via curses ACS characters
+_SNAKE_HEAD = '◆'
+_SNAKE_BODY = '█'
+_FOOD_CHAR = '●'
 
 
 class CursesUI:
     """Terminal UI implementation using curses."""
 
     def __init__(self, width: int = 60, height: int = 30):
-        """
-        Initialize the curses UI.
+        # play-area dimensions (inside the border)
+        self.play_w = width
+        self.play_h = height
+        # total window: border + HUD row
+        self.win_w = width + 2   # left/right border cols
+        self.win_h = height + 2  # top/bottom border rows
+        self.stdscr: Optional[curses.window] = None
+        self._has_colors = False
 
-        Args:
-            width: Playfield width in columns
-            height: Playfield height in rows
-        """
-        self.width = width
-        self.height = height
-        self.stdscr = None
-        self.game_over_win = None
-        self.start_win = None
+    # -- lifecycle -----------------------------------------------------------
 
     def start(self) -> None:
-        """Start the curses interface."""
         self.stdscr = curses.initscr()
         self.stdscr.keypad(True)
         self.stdscr.nodelay(True)
         curses.noecho()
         curses.cbreak()
         curses.curs_set(0)
+        if curses.has_colors():
+            curses.start_color()
+            curses.use_default_colors()
+            curses.init_pair(1, curses.COLOR_GREEN, -1)   # snake
+            curses.init_pair(2, curses.COLOR_RED, -1)     # food
+            curses.init_pair(3, curses.COLOR_YELLOW, -1)  # HUD
+            curses.init_pair(4, curses.COLOR_CYAN, -1)    # border
+            curses.init_pair(5, curses.COLOR_WHITE, -1)   # title
+            curses.init_pair(6, curses.COLOR_MAGENTA, -1) # highlight
+            self._has_colors = True
         self.stdscr.clear()
         self.stdscr.refresh()
 
     def stop(self) -> None:
-        """Stop the curses interface."""
         if self.stdscr:
             curses.nocbreak()
             self.stdscr.keypad(False)
@@ -50,228 +89,259 @@ class CursesUI:
             curses.curs_set(1)
             curses.endwin()
 
-    def draw_border(self) -> None:
-        """Draw a bordered playfield."""
+    # -- input ---------------------------------------------------------------
+
+    def get_input(self) -> Optional[Union[Direction, Action]]:
         if not self.stdscr:
-            return
-
-        for i in range(self.height):
-            for j in range(self.width):
-                if i == 0:
-                    if j == 0:
-                        self.stdscr.addch(i, j, curses.ACS_ULCORNER)
-                    elif j == self.width - 1:
-                        self.stdscr.addch(i, j, curses.ACS_URCORNER)
-                    else:
-                        self.stdscr.addch(i, j, curses.ACS_HLINE)
-                elif i == self.height - 1:
-                    if j == 0:
-                        self.stdscr.addch(i, j, curses.ACS_LLCORNER)
-                    elif j == self.width - 1:
-                        self.stdscr.addch(i, j, curses.ACS_LRCORNER)
-                    else:
-                        self.stdscr.addch(i, j, curses.ACS_HLINE)
-                elif j == 0 or j == self.width - 1:
-                    self.stdscr.addch(i, j, curses.ACS_VLINE)
-
-    def draw_snake(self, snake_body: list) -> None:
-        """
-        Draw the snake body.
-
-        Args:
-            snake_body: List of (row, col) positions
-        """
-        if not self.stdscr:
-            return
-
-        for part in snake_body:
-            try:
-                self.stdscr.addch(part[0], part[1], '█')
-            except curses.error:
-                pass
-
-    def draw_food(self, food_pos: tuple) -> None:
-        """
-        Draw the food.
-
-        Args:
-            food_pos: (row, col) position of food
-        """
-        if not self.stdscr:
-            return
-
-        try:
-            self.stdscr.addch(food_pos[0], food_pos[1], '@')
-        except curses.error:
-            pass
-
-    def draw_score(self, score: int, status: GameStatus) -> None:
-        """
-        Draw the score at the bottom.
-
-        Args:
-            score: Current score
-            status: Current game status
-        """
-        if not self.stdscr:
-            return
-
-        status_str = status.value.upper()
-        message = f"Score: {score} | {status_str} | Q=quit"
-
-        # Draw below the border
-        row = self.height
-        try:
-            self.stdscr.addstr(row, 0, message[:self.width])
-        except curses.error:
-            pass
-
-    def refresh(self) -> None:
-        """Refresh the screen."""
-        if self.stdscr:
-            self.stdscr.refresh()
-
-    def get_input(self) -> Optional[Direction]:
-        """
-        Get keyboard input and convert to direction.
-
-        Returns:
-            Direction based on key press, or None if no input
-        """
-        if not self.stdscr:
-            debug_log("get_input: stdscr is None")
             return None
-
         try:
             key = self.stdscr.getch()
-            debug_log(f"get_input: Raw key code = {key}")
-        except curses.error as e:
-            debug_log(f"get_input: curses.error = {e}")
+        except curses.error:
             return None
+        if key == -1:
+            return None
+        return map_key(key)
 
-        # Debug output for keys
-        if key in [ord('w'), ord('W'), ord('s'), ord('S'), ord('a'), ord('A'),
-                   ord('d'), ord('D'), ord('r'), ord('R'), ord('q'), ord('Q')]:
-            debug_log(f"get_input: Recognized key = {key}, char = {chr(key) if key > 0 else 'N/A'}")
-
-        # Handle quit and restart first
-        if key == ord('q') or key == ord('Q'):
-            debug_log("get_input: Returning 'QUIT' (Quit command)")
-            return Direction.QUIT  # Quit command sentinel
-        elif key == ord('r') or key == ord('R'):
-            debug_log("get_input: Returning 'RESET' (Restart command)")
-            return Direction.RESET  # Restart command
-
-        # Then handle direction keys
-        if key == curses.KEY_UP:
-            debug_log("get_input: Returning Direction.UP")
-            return Direction.UP
-        elif key == curses.KEY_DOWN:
-            debug_log("get_input: Returning Direction.DOWN")
-            return Direction.DOWN
-        elif key == curses.KEY_LEFT:
-            debug_log("get_input: Returning Direction.LEFT")
-            return Direction.LEFT
-        elif key == curses.KEY_RIGHT:
-            debug_log("get_input: Returning Direction.RIGHT")
-            return Direction.RIGHT
-        elif key == ord('w') or key == ord('W'):
-            debug_log("get_input: Returning Direction.UP (W key)")
-            return Direction.UP
-        elif key == ord('s') or key == ord('S'):
-            debug_log("get_input: Returning Direction.DOWN (S key)")
-            return Direction.DOWN
-        elif key == ord('a') or key == ord('A'):
-            debug_log("get_input: Returning Direction.LEFT (A key)")
-            return Direction.LEFT
-        elif key == ord('d') or key == ord('D'):
-            debug_log("get_input: Returning Direction.RIGHT (D key)")
-            return Direction.RIGHT
-
-        debug_log(f"get_input: Key {key} did not match any direction, returning None")
-        return None
-
-    def show_game_over(self, score: int) -> None:
-        """
-        Show game over screen.
-
-        Args:
-            score: Final score
-        """
+    def wait_for_key(self) -> Optional[Union[Direction, Action]]:
+        """Block until a key is pressed."""
         if not self.stdscr:
-            return
-
-        self.stdscr.clear()
-        height, width = self.stdscr.getmaxyx()
-
-        # Center the message
-        start_row = height // 2 - 2
-        start_col = width // 2 - 10
-
-        self.stdscr.addstr(start_row, start_col, "GAME OVER!")
-        self.stdscr.addstr(start_row + 1, start_col, f"Final Score: {score}")
-        self.stdscr.addstr(start_row + 2, start_col, "Press R to restart")
-        self.stdscr.addstr(start_row + 3, start_col, "Press Q to quit")
-        self.stdscr.refresh()
-
-    def show_start_screen(self, score_callback: Optional[Callable] = None) -> None:
-        """
-        Show start screen with controls.
-
-        Args:
-            score_callback: Optional callback for initial score
-        """
-        if not self.stdscr:
-            return
-
-        self.stdscr.clear()
-        height, width = self.stdscr.getmaxyx()
-
-        # Title
-        title_row = height // 2 - 4
-        title = "SNAKE GAME"
-        start_col = width // 2 - len(title) // 2
-        self.stdscr.addstr(title_row, start_col, title)
-
-        # Instructions
-        instructions = [
-            "Arrow keys or WASD to move",
-            "Eat @ to grow",
-            "Avoid walls and yourself",
-            "",
-            "Press SPACE to start"
-        ]
-
-        for i, line in enumerate(instructions):
-            self.stdscr.addstr(title_row + 2 + i, start_col, line)
-
-        # Initial score if provided
-        if score_callback:
-            score = score_callback()
-            self.stdscr.addstr(title_row + 7, start_col, f"Press SPACE to start | Score: {score}")
-
-        self.stdscr.refresh()
-
-    def wait_for_start(self) -> bool:
-        """
-        Wait for spacebar to start the game.
-
-        Returns:
-            True if game should start, False if quit
-        """
-        if not self.stdscr:
-            return False
-
-        self.stdscr.timeout(-1)  # Blocking input
+            return None
+        self.stdscr.timeout(-1)
         try:
             key = self.stdscr.getch()
         except curses.error:
             key = -1
+        self.stdscr.timeout(50)
+        if key == -1:
+            return None
+        return map_key(key)
 
-        self.stdscr.timeout(100)  # Back to non-blocking
-        return key == ord(' ')
+    # -- helpers -------------------------------------------------------------
+
+    def _attr(self, pair: int, bold: bool = False) -> int:
+        a = curses.color_pair(pair) if self._has_colors else 0
+        if bold:
+            a |= curses.A_BOLD
+        return a
+
+    def _safe_addstr(self, row: int, col: int, text: str, attr: int = 0) -> None:
+        if not self.stdscr:
+            return
+        try:
+            self.stdscr.addstr(row, col, text, attr)
+        except curses.error:
+            pass
+
+    def _safe_addch(self, row: int, col: int, ch, attr: int = 0) -> None:
+        if not self.stdscr:
+            return
+        try:
+            self.stdscr.addch(row, col, ch, attr)
+        except curses.error:
+            pass
+
+    def _center_col(self, text: str) -> int:
+        return max(0, self.win_w // 2 - len(text) // 2)
+
+    # -- drawing primitives --------------------------------------------------
 
     def clear(self) -> None:
-        """Clear the screen."""
         if self.stdscr:
-            self.stdscr.clear()
+            self.stdscr.erase()
+
+    def refresh(self) -> None:
+        if self.stdscr:
+            self.stdscr.refresh()
+
+    def draw_border(self) -> None:
+        """Draw the play-area border (offset by 0,0; play area starts at 1,1)."""
+        if not self.stdscr:
+            return
+        attr = self._attr(4)
+        # top row
+        self._safe_addch(0, 0, curses.ACS_ULCORNER, attr)
+        for c in range(1, self.play_w + 1):
+            self._safe_addch(0, c, curses.ACS_HLINE, attr)
+        self._safe_addch(0, self.play_w + 1, curses.ACS_URCORNER, attr)
+        # sides
+        for r in range(1, self.play_h + 1):
+            self._safe_addch(r, 0, curses.ACS_VLINE, attr)
+            self._safe_addch(r, self.play_w + 1, curses.ACS_VLINE, attr)
+        # bottom row
+        self._safe_addch(self.play_h + 1, 0, curses.ACS_LLCORNER, attr)
+        for c in range(1, self.play_w + 1):
+            self._safe_addch(self.play_h + 1, c, curses.ACS_HLINE, attr)
+        self._safe_addch(self.play_h + 1, self.play_w + 1,
+                         curses.ACS_LRCORNER, attr)
+
+    def draw_snake(self, body: List[Tuple[int, int]]) -> None:
+        if not self.stdscr or not body:
+            return
+        # head
+        attr_head = self._attr(1, bold=True)
+        self._safe_addstr(body[0][0] + 1, body[0][1] + 1,
+                          _SNAKE_HEAD, attr_head)
+        # body
+        attr_body = self._attr(1)
+        for part in body[1:]:
+            self._safe_addstr(part[0] + 1, part[1] + 1, _SNAKE_BODY, attr_body)
+
+    def draw_food(self, pos: Tuple[int, int]) -> None:
+        if not self.stdscr:
+            return
+        self._safe_addstr(pos[0] + 1, pos[1] + 1, _FOOD_CHAR,
+                          self._attr(2, bold=True))
+
+    def draw_hud(self, score: int, high_score: int, level: int,
+                 paused: bool = False) -> None:
+        """Draw status bar below the play area."""
+        if not self.stdscr:
+            return
+        row = self.play_h + 2
+        attr = self._attr(3, bold=True)
+        parts = [
+            f" Score: {score} ",
+            f" Hi: {high_score} ",
+            f" Lvl: {level} ",
+        ]
+        if paused:
+            parts.append(" ⏸ PAUSED ")
+        line = "│".join(parts)
+        hints = " P=pause  R=restart  Q=quit"
+        full = line + hints
+        self._safe_addstr(row, 0, full[:self.win_w], attr)
+
+    # -- screens -------------------------------------------------------------
+
+    def show_menu(self, items: List[str], selected: int,
+                  high_score: int = 0) -> None:
+        if not self.stdscr:
+            return
+        self.clear()
+        mid_r = self.win_h // 2 - len(items)
+        # ASCII art title
+        title_lines = [
+            "  ╔═╗╔╗╔╔═╗╦╔═╔═╗  ",
+            "  ╚═╗║║║╠═╣╠╩╗║╣   ",
+            "  ╚═╝╝╚╝╩ ╩╩ ╩╚═╝  ",
+        ]
+        for i, line in enumerate(title_lines):
+            self._safe_addstr(mid_r - 5 + i, self._center_col(line), line,
+                              self._attr(1, bold=True))
+
+        subtitle = "~ Terminal Snake ~"
+        self._safe_addstr(mid_r - 1, self._center_col(subtitle), subtitle,
+                          self._attr(5))
+
+        for i, item in enumerate(items):
+            marker = " ▸ " if i == selected else "   "
+            text = f"{marker}{item}"
+            attr = self._attr(6, bold=True) if i == selected else self._attr(5)
+            self._safe_addstr(mid_r + 1 + i * 2, self._center_col(text), text,
+                              attr)
+
+        if high_score > 0:
+            hs = f"Best: {high_score}"
+            self._safe_addstr(mid_r + 2 + len(items) * 2,
+                              self._center_col(hs), hs, self._attr(3))
+
+        hint = "↑/↓ navigate  Enter/Space select  Q quit"
+        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
+                          self._attr(4))
+        self.refresh()
+
+    def show_high_scores(self, entries) -> None:
+        """Show high-score table.  entries: list of HighScoreEntry."""
+        if not self.stdscr:
+            return
+        self.clear()
+        title = "═══ HIGH SCORES ═══"
+        self._safe_addstr(2, self._center_col(title), title,
+                          self._attr(3, bold=True))
+        if not entries:
+            msg = "No scores yet — go play!"
+            self._safe_addstr(5, self._center_col(msg), msg, self._attr(5))
+        else:
+            header = f" {'#':>2}  {'INITIALS':<8} {'SCORE':>6}"
+            self._safe_addstr(4, self._center_col(header), header,
+                              self._attr(5, bold=True))
+            for i, e in enumerate(entries[:10]):
+                line = f" {i+1:>2}. {e.initials:<8} {e.score:>6}"
+                self._safe_addstr(5 + i, self._center_col(line), line,
+                                  self._attr(1) if i == 0 else self._attr(5))
+        hint = "Press any key to return"
+        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
+                          self._attr(4))
+        self.refresh()
+
+    def show_help(self) -> None:
+        if not self.stdscr:
+            return
+        self.clear()
+        title = "═══ HELP ═══"
+        self._safe_addstr(2, self._center_col(title), title,
+                          self._attr(3, bold=True))
+        lines = [
+            "Arrow keys / WASD ─ move the snake",
+            "P ─ pause / resume",
+            "R ─ restart game",
+            "M / Esc ─ back to menu (game over)",
+            "Q ─ quit",
+            "",
+            "Eat ● to grow and score points.",
+            "Avoid walls and your own tail!",
+            "Speed increases every 5 points.",
+        ]
+        start = 5
+        for i, line in enumerate(lines):
+            self._safe_addstr(start + i, self._center_col(line), line,
+                              self._attr(5))
+        hint = "Press any key to return"
+        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
+                          self._attr(4))
+        self.refresh()
+
+    def show_game_over(self, score: int, high_score: int) -> None:
+        if not self.stdscr:
+            return
+        self.clear()
+        self.draw_border()
+        mid_r = self.win_h // 2 - 2
+        lines = [
+            "╔═══════════════════╗",
+            "║    GAME  OVER     ║",
+            "╚═══════════════════╝",
+            f"  Score: {score}   Best: {high_score}",
+            "",
+            "R = restart   M = menu   Q = quit",
+        ]
+        for i, line in enumerate(lines):
+            attr = self._attr(2, bold=True) if i < 3 else self._attr(5)
+            self._safe_addstr(mid_r + i, self._center_col(line), line, attr)
+        self.refresh()
+
+    def show_paused(self) -> None:
+        """Overlay a PAUSED banner on current screen."""
+        if not self.stdscr:
+            return
+        mid_r = self.win_h // 2
+        text = " ⏸  PAUSED — P to resume "
+        self._safe_addstr(mid_r, self._center_col(text), text,
+                          self._attr(3, bold=True))
+        self.refresh()
+
+    # -- full play-frame render ----------------------------------------------
+
+    def render_frame(self, snake_body: List[Tuple[int, int]],
+                     food_pos: Tuple[int, int], score: int,
+                     high_score: int, level: int,
+                     paused: bool = False) -> None:
+        """Render one complete game frame (border + objects + HUD)."""
+        self.clear()
+        self.draw_border()
+        self.draw_snake(snake_body)
+        self.draw_food(food_pos)
+        self.draw_hud(score, high_score, level, paused)
+        if paused:
+            self.show_paused()
+        self.refresh()
