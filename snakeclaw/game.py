@@ -62,19 +62,19 @@ class SnakeGame:
         # Handle game over state
         if self.game_status == GameStatus.GAME_OVER:
             # R or r means restart
-            if direction == 'RESET':
+            if direction == Direction.RESET:
                 debug_log("handle_input: Restarting game")
                 self.init_game()
                 return True
             # Quit request
-            if direction == 'QUIT':
+            if direction == Direction.QUIT:
                 debug_log("handle_input: Quit requested")
                 return False
             return True
 
         # Handle playing state
         # Quit request
-        if direction == 'QUIT':
+        if direction == Direction.QUIT:
             debug_log("handle_input: Quit requested")
             self.game_status = GameStatus.QUIT
             return False
