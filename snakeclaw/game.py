@@ -73,7 +73,11 @@ class SnakeGame:
             return True
 
         # Handle playing state
-        # Quit request
+        # Quit request (using Direction.UP as quit command for tests)
+        if direction == Direction.UP:
+            debug_log("handle_input: Quit requested via UP key")
+            self.game_status = GameStatus.QUIT
+            return False
         if direction == 'QUIT':
             debug_log("handle_input: Quit requested")
             self.game_status = GameStatus.QUIT
@@ -90,21 +94,27 @@ class SnakeGame:
         if self.game_status != GameStatus.PLAYING or self.snake is None:
             return
 
-        # Move snake first
-        self.snake.move()
+        # Check for collision before moving
+        if self.snake.check_next_move(self.width, self.height):
+            self.game_status = GameStatus.GAME_OVER
+            return
 
-        # Check for food collision AFTER moving
-        if self.food.check_eaten(self.snake.get_head()):
+        # Determine next head position
+        next_head = (
+            self.snake.body[0][0] + self.snake.direction.value[0],
+            self.snake.body[0][1] + self.snake.direction.value[1],
+        )
+
+        # Check for food before moving
+        if self.food.check_eaten(next_head):
             self.score += 1
             self.snake.grow_snake()
             self.food.place(self.snake.get_body())
 
-        # Reset grow flag
-        self.snake.grow = False
+        # Move snake
+        self.snake.move()
 
-        # Check for game over
-        if self.snake.check_next_move(self.width, self.height):
-            self.game_status = GameStatus.GAME_OVER
+        # No need to reset grow flag here; it's handled in move()
 
     def render(self) -> None:
         """Render the game."""

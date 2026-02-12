@@ -1,6 +1,0 @@
-# Snake Claw Requirements
-# This package only requires Python standard library (3.12+)
-# No external dependencies are required for curses (available on Unix-like systems)
-
-# Optional: For development and testing
-pytest>=7.0.0
