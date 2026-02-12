@@ -38,9 +38,9 @@ class Snake:
         # Build body with head at start_pos and the rest behind in the opposite direction
         self.body: List[Tuple[int, int]] = [start_pos]
         current_pos = start_pos
-        dx, dy = self.direction.value
+        dx, dy = direction.value
         for _ in range(1, length):
-            current_pos = (current_pos[0] - dx, current_pos[1] - dy)
+            current_pos = (current_pos[0] + dx, current_pos[1] + dy)
             self.body.append(current_pos)
         self.grow: bool = False
 
@@ -107,9 +107,9 @@ class Snake:
         if head[0] < 0 or head[0] >= height or head[1] < 0 or head[1] >= width:
             return True
 
-        # Self collision (skip the head when checking for self-collision)
-        body = self.body[1:]
-        if head in body:
+        # Self collision (skip the head)
+        body = self.get_body()
+        if body and head in body[1:]:
             return True
 
         return False
@@ -182,6 +182,7 @@ class Food:
 
         while True:
             # Generate random position within bounds
+            # Use (height, width) to get valid row and column ranges
             p = (
                 random.randint(0, self.height - 1),
                 random.randint(0, self.width - 1)
