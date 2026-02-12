@@ -96,15 +96,17 @@ TestGame/
 ### Design Principles
 
 - **Separation of concerns**: `engine.py` contains all game logic with zero terminal dependency; `ui.py` is a thin curses renderer
-- **Testability**: The engine is fully testable without a real terminal (116 tests, all pure-logic)
+- **Testability**: The engine is fully testable without a real terminal (115 tests, all pure-logic)
 - **State machine**: Clean `GameState` enum drives menu → playing → paused → game over transitions
+- **Aspect ratio correction**: Uses 2 terminal columns per game cell to compensate for terminal character dimensions (~2:1 height:width ratio), making the snake appear more square-shaped
 
 ### Game Settings
 
 - **Playfield size**: 60 × 30 (configurable in `GameEngine`)
+- **Screen rendering**: 2 columns per cell for proper aspect ratio
 - **Speed levels**: 6 tiers from 0.18 s to 0.07 s per tick
 - **Snake initial length**: 3 segments
-- **Food**: ● symbol | Snake head: ◆ | Body: █
+- **Rendering**: Food: ●● | Snake head: ◆◆ | Body: ██
 
 ## Running Tests
 
