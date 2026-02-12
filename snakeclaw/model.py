@@ -33,6 +33,7 @@ class GameState(Enum):
     PLAYING = "playing"
     PAUSED = "paused"
     GAME_OVER = "game_over"
+    ENTER_INITIALS = "enter_initials"
     HIGH_SCORES = "high_scores"
     HELP = "help"
     QUIT = "quit"

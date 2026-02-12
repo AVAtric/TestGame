@@ -1,30 +1,23 @@
-# Snake Claw
+# 🐍 Snake Claw
 
-A polished Snake game for the terminal/console written in Python.
+A polished terminal Snake game with modern features and clean architecture.
 
-## Features
+## ✨ Features
 
-- 🎮 Classic Snake gameplay with smooth console rendering
-- 🖥️ Terminal UI using curses with colour support
-- ⌨️ Arrow keys or WASD controls
-- 📊 Score, high-score, and level tracking (HUD)
-- ⏸ Pause / Resume (P)
-- 🔄 Restart (R) without restarting the process
-- 📋 Main menu: Start Game / High Scores / Help / Quit
-- 🏆 Persistent high-score table (top 10, JSON)
-- 🧪 116 unit tests covering logic, state, and persistence
-- ✨ Type hints throughout
-- 📦 Minimal dependencies
+- 🎮 **Classic gameplay** with smooth terminal rendering using curses
+- 🏆 **High score system** with personalized name entry
+- 📊 **Live HUD** showing score, high score, and level
+- ⚡ **Progressive difficulty** — 6 speed levels that increase with score
+- 🎨 **Color support** with proper aspect ratio (2:1 column correction)
+- ⌨️ **Intuitive controls** — Arrow keys or WASD
+- 📋 **Polished UI** — Menu, pause, help screens, high score table
+- 💾 **Persistent storage** — Top 10 scores saved to JSON
+- 🧪 **Well-tested** — 115 unit tests with full coverage
+- 🐍 **Modern Python** — Type hints, clean separation of concerns
 
-## Requirements
+## 🚀 Quick Start
 
-- Python 3.12 or higher
-- Linux, macOS, or Windows with a terminal emulator that supports curses
-- pip (for installation)
-
-## Installation
-
-### Using pip (recommended)
+### Installation
 
 ```bash
 python3 -m venv .venv
@@ -32,93 +25,137 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-## Running the Game
-
-### Using console script (after installation)
+### Run
 
 ```bash
-source .venv/bin/activate
 snakeclaw
 ```
 
-### Using Python module
+Or via module:
 
 ```bash
-source .venv/bin/activate
 python3 -m snakeclaw
 ```
 
-## Controls
+## 🎮 How to Play
 
-| Key              | Action                          |
-|------------------|---------------------------------|
-| Arrow keys / WASD | Move the snake                |
-| P                | Pause / Resume                  |
-| R                | Restart game                    |
-| M / Esc          | Back to menu (game over screen) |
-| Enter / Space    | Select menu item                |
-| Q                | Quit                            |
+1. **Navigate the menu** with ↑/↓ and Enter
+2. **Move the snake** with arrow keys or WASD
+3. **Eat food (●●)** to grow and score points
+4. **Avoid walls and yourself** — collision ends the game
+5. **Enter your name** when you achieve a high score!
+6. **Press M** anytime to return to menu
 
-## Gameplay
+### Controls
 
-1. Use the **main menu** to start a game, view high scores, or read help
-2. Control the snake with arrow keys or WASD
-3. Eat **●** food to grow, score points, and increase speed
-4. Speed increases every 5 points (6 levels)
-5. Avoid hitting the walls or your own body
-6. After game over, press **R** to restart, **M** for menu, or **Q** to quit
-7. High scores persist across sessions in `snakeclaw/data/highscores.json`
+| Key | Action |
+|-----|--------|
+| **Arrow Keys / WASD** | Move snake |
+| **P** | Pause / Resume |
+| **M / Esc** | Return to menu |
+| **R** | Restart game (from game over) |
+| **Q** | Quit |
+| **Enter / Space** | Select menu item / Confirm |
 
-## Architecture
+### High Score Entry
+
+When you beat a high score, you'll be prompted to enter your initials:
+
+- **↑/↓** — Change current letter (A-Z or space)
+- **←/→** — Move cursor between the 3 characters
+- **Enter** — Confirm and save
+- **Esc** — Skip and use default "---"
+
+## 🏗️ Architecture
+
+### Clean Design
+
+```
+┌─────────────┐
+│   game.py   │  ← Thin controller (game loop)
+└──────┬──────┘
+       │
+   ┌───┴────┐
+   ▼        ▼
+┌────────┐ ┌────────┐
+│engine  │ │  ui    │  ← Separated concerns
+│(logic) │ │(render)│
+└────┬───┘ └────────┘
+     │
+     ▼
+┌─────────┐
+│ model   │  ← Pure data structures
+└─────────┘
+```
+
+**Key principles:**
+
+- **Zero I/O in game logic** — `engine.py` is terminal-independent
+- **Testability first** — All game logic tested without real terminal
+- **State machine** — Clean transitions: menu → playing → paused → game over → enter initials
+- **Aspect ratio fix** — 2 terminal columns per cell for square appearance
 
 ### Project Structure
 
 ```
 TestGame/
 ├── snakeclaw/
-│   ├── __init__.py      # Package init
-│   ├── __main__.py      # Entry point for python -m snakeclaw
-│   ├── engine.py        # Pure game engine (no I/O) — logic, state, scores
-│   ├── game.py          # Thin controller connecting engine ↔ UI
-│   ├── model.py         # Data models (Snake, Food, Direction, enums)
-│   ├── ui.py            # Terminal renderer using curses
+│   ├── model.py         # Data structures (Snake, Food, Direction, State)
+│   ├── engine.py        # Game logic & state machine
+│   ├── ui.py            # Curses rendering
+│   ├── game.py          # Main game loop controller
 │   └── data/
-│       └── highscores.json  # Persisted high scores (auto-created)
-├── tests/
-│   ├── test_model.py    # Snake, Food, Direction tests
-│   ├── test_engine.py   # Engine logic, state transitions, high scores
-│   ├── test_game.py     # Integration smoke tests
-│   └── test_ui.py       # Key mapping & rendering tests
-├── setup.py             # Package setup
-└── README.md            # This file
+│       └── highscores.json  # Persistent top 10 scores
+├── tests/               # 115 unit tests
+└── setup.py
 ```
 
-### Design Principles
+## ⚙️ Game Mechanics
 
-- **Separation of concerns**: `engine.py` contains all game logic with zero terminal dependency; `ui.py` is a thin curses renderer
-- **Testability**: The engine is fully testable without a real terminal (115 tests, all pure-logic)
-- **State machine**: Clean `GameState` enum drives menu → playing → paused → game over transitions
-- **Aspect ratio correction**: Uses 2 terminal columns per game cell to compensate for terminal character dimensions (~2:1 height:width ratio), making the snake appear more square-shaped
+- **Playfield:** 60×30 logical grid (120×30 on screen with 2-column cells)
+- **Starting snake:** 3 segments, moving right
+- **Speed progression:** 6 levels, from 0.18s to 0.07s per tick
+- **Level up:** Every 5 points scored
+- **High scores:** Top 10 saved with initials and timestamps
 
-### Game Settings
+## 🧪 Testing
 
-- **Playfield size**: 60 × 30 (configurable in `GameEngine`)
-- **Screen rendering**: 2 columns per cell for proper aspect ratio
-- **Speed levels**: 6 tiers from 0.18 s to 0.07 s per tick
-- **Snake initial length**: 3 segments
-- **Rendering**: Food: ●● | Snake head: ◆◆ | Body: ██
-
-## Running Tests
+Run the full test suite:
 
 ```bash
-source .venv/bin/activate
 python3 -m pytest tests/ -v
 ```
 
-## License
+**Coverage:**
+- Model logic (Snake movement, collision, food placement)
+- Engine (state transitions, scoring, high score management)
+- UI (key mapping, rendering safety)
+- Integration (game flow)
 
-MIT License
+## 📋 Requirements
 
-## Author
+- **Python:** 3.12+ (uses modern type hints and features)
+- **Platform:** Linux, macOS, or Windows with curses-compatible terminal
+- **Dependencies:** Minimal (curses is built-in on Unix; windows-curses for Windows)
 
-Coding Agent
+## 🛠️ Development
+
+The codebase follows strict conventions:
+
+- ✅ Type hints throughout
+- ✅ PEP 8 style
+- ✅ Docstrings on public methods
+- ✅ Separation of concerns
+- ✅ No global state
+
+## 📝 License
+
+MIT License — Free to use, modify, and distribute.
+
+## 🤖 Credits
+
+Built by a coding agent with attention to architecture, testing, and user experience.
+
+---
+
+**Enjoy the game! May your snake grow long and your reflexes stay sharp.** 🐍✨

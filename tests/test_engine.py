@@ -213,6 +213,10 @@ class TestEnginePlaying:
         e.handle_input(Direction.DOWN); e.tick()
         e.handle_input(Direction.LEFT); e.tick()
         e.handle_input(Direction.UP); e.tick()
+        # Should be in ENTER_INITIALS state since we have a score
+        assert e.state == GameState.ENTER_INITIALS
+        # Confirm initials to proceed to GAME_OVER
+        e.handle_input(Action.SELECT)
         assert e.state == GameState.GAME_OVER
 
 
@@ -276,8 +280,11 @@ class TestEngineGameOver:
         # Force game over
         for _ in range(100):
             e.tick()
-            if e.state == GameState.GAME_OVER:
+            if e.state in (GameState.GAME_OVER, GameState.ENTER_INITIALS):
                 break
+        # If we're in ENTER_INITIALS, confirm to save the score
+        if e.state == GameState.ENTER_INITIALS:
+            e.handle_input(Action.SELECT)
         assert e.high_scores.best >= 1
 
 

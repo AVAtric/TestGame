@@ -288,12 +288,13 @@ class CursesUI:
             "Arrow keys / WASD ─ move the snake",
             "P ─ pause / resume",
             "R ─ restart game",
-            "M / Esc ─ back to menu (game over)",
+            "M / Esc ─ back to menu",
             "Q ─ quit",
             "",
-            "Eat ● to grow and score points.",
+            "Eat ●● to grow and score points.",
             "Avoid walls and your own tail!",
             "Speed increases every 5 points.",
+            "Enter your initials for high scores!",
         ]
         start = 5
         for i, line in enumerate(lines):
@@ -321,6 +322,59 @@ class CursesUI:
         for i, line in enumerate(lines):
             attr = self._attr(2, bold=True) if i < 3 else self._attr(5)
             self._safe_addstr(mid_r + i, self._center_col(line), line, attr)
+        self.refresh()
+
+    def show_enter_initials(self, score: int, initials: List[str], 
+                            cursor: int) -> None:
+        """Show initials entry screen."""
+        if not self.stdscr:
+            return
+        self.clear()
+        self.draw_border()
+        mid_r = self.win_h // 2 - 4
+        
+        title = "╔═══════════════════════╗"
+        title2 = "║   NEW HIGH SCORE!    ║"
+        title3 = "╚═══════════════════════╝"
+        
+        self._safe_addstr(mid_r, self._center_col(title), title,
+                          self._attr(3, bold=True))
+        self._safe_addstr(mid_r + 1, self._center_col(title2), title2,
+                          self._attr(3, bold=True))
+        self._safe_addstr(mid_r + 2, self._center_col(title3), title3,
+                          self._attr(3, bold=True))
+        
+        score_line = f"Score: {score}"
+        self._safe_addstr(mid_r + 4, self._center_col(score_line), score_line,
+                          self._attr(5))
+        
+        prompt = "Enter your initials:"
+        self._safe_addstr(mid_r + 6, self._center_col(prompt), prompt,
+                          self._attr(5))
+        
+        # Display initials with current cursor position highlighted
+        initials_display = "   ".join(initials)
+        initials_col = self._center_col(initials_display)
+        
+        for i, char in enumerate(initials):
+            col = initials_col + i * 4
+            attr = self._attr(6, bold=True) if i == cursor else self._attr(1, bold=True)
+            self._safe_addstr(mid_r + 8, col, char, attr)
+            if i == cursor:
+                # Add cursor indicator
+                self._safe_addstr(mid_r + 9, col, "▲", self._attr(6))
+        
+        hints = [
+            "↑/↓ = change letter",
+            "←/→ = move cursor",
+            "Enter = confirm",
+            "Esc = skip",
+        ]
+        start_hint = mid_r + 11
+        for i, hint in enumerate(hints):
+            self._safe_addstr(start_hint + i, self._center_col(hint), hint,
+                              self._attr(4))
+        
         self.refresh()
 
     def show_paused(self) -> None:

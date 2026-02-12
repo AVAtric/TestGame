@@ -122,6 +122,10 @@ class GameEngine:
         self.menu_items = ["Start Game", "High Scores", "Help", "Quit"]
         self.menu_index: int = 0
 
+        # Initials entry state
+        self.current_initials: List[str] = ['A', 'A', 'A']
+        self.initials_cursor: int = 0
+
     # -- helpers -------------------------------------------------------------
 
     @property
@@ -159,6 +163,8 @@ class GameEngine:
             self._handle_paused_input(inp)
         elif self.state == GameState.GAME_OVER:
             self._handle_game_over_input(inp)
+        elif self.state == GameState.ENTER_INITIALS:
+            self._handle_initials_input(inp)
         elif self.state in (GameState.HIGH_SCORES, GameState.HELP):
             self._handle_overlay_input(inp)
 
@@ -185,12 +191,18 @@ class GameEngine:
             self.snake.set_direction(inp)
         elif inp == Action.PAUSE:
             self.state = GameState.PAUSED
+        elif inp == Action.MENU:
+            self.state = GameState.MENU
+            self.menu_index = 0
         elif inp == Action.QUIT:
             self.state = GameState.QUIT
 
     def _handle_paused_input(self, inp: Union[Direction, Action]) -> None:
         if inp == Action.PAUSE:
             self.state = GameState.PLAYING
+        elif inp == Action.MENU:
+            self.state = GameState.MENU
+            self.menu_index = 0
         elif inp == Action.QUIT:
             self.state = GameState.QUIT
         elif inp == Action.RESET:
@@ -209,6 +221,47 @@ class GameEngine:
         # Any key returns to menu
         self.state = GameState.MENU
 
+    def _handle_initials_input(self, inp: Union[Direction, Action]) -> None:
+        """Handle input for entering initials (3 characters)."""
+        if inp == Direction.UP:
+            # Increment current letter
+            current = self.current_initials[self.initials_cursor]
+            if current == 'Z':
+                self.current_initials[self.initials_cursor] = 'A'
+            elif current == ' ':
+                self.current_initials[self.initials_cursor] = 'A'
+            else:
+                self.current_initials[self.initials_cursor] = chr(ord(current) + 1)
+        elif inp == Direction.DOWN:
+            # Decrement current letter
+            current = self.current_initials[self.initials_cursor]
+            if current == 'A':
+                self.current_initials[self.initials_cursor] = ' '
+            elif current == ' ':
+                self.current_initials[self.initials_cursor] = 'Z'
+            else:
+                self.current_initials[self.initials_cursor] = chr(ord(current) - 1)
+        elif inp == Direction.RIGHT:
+            # Move to next position
+            if self.initials_cursor < 2:
+                self.initials_cursor += 1
+        elif inp == Direction.LEFT:
+            # Move to previous position
+            if self.initials_cursor > 0:
+                self.initials_cursor -= 1
+        elif inp == Action.SELECT:
+            # Confirm and save
+            initials = ''.join(self.current_initials)
+            self.high_scores.add(self.score, initials)
+            self.state = GameState.GAME_OVER
+        elif inp == Action.MENU:
+            # Cancel - use default initials
+            self.high_scores.add(self.score, '---')
+            self.state = GameState.MENU
+            self.menu_index = 0
+        elif inp == Action.QUIT:
+            self.state = GameState.QUIT
+
     # -- tick ----------------------------------------------------------------
 
     def tick(self) -> None:
@@ -218,9 +271,16 @@ class GameEngine:
 
         # Collision check before move
         if self.snake.check_next_move(self.width, self.height):
-            self.state = GameState.GAME_OVER
-            if self.score > 0:
-                self.high_scores.add(self.score)
+            # Check if it's a high score
+            if self.high_scores.is_high_score(self.score):
+                # Reset initials entry state
+                self.current_initials = ['A', 'A', 'A']
+                self.initials_cursor = 0
+                self.state = GameState.ENTER_INITIALS
+            else:
+                self.state = GameState.GAME_OVER
+                if self.score > 0:
+                    self.high_scores.add(self.score, '---')
             return
 
         # Check food before moving

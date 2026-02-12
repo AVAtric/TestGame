@@ -60,6 +60,14 @@ class SnakeGame:
                 self.engine.handle_input(inp)
                 continue
 
+            if state == GameState.ENTER_INITIALS:
+                self.ui.show_enter_initials(self.engine.score,
+                                            self.engine.current_initials,
+                                            self.engine.initials_cursor)
+                inp = self.ui.wait_for_key()
+                self.engine.handle_input(inp)
+                continue
+
             # --- Playing / Paused (non-blocking input) ---
             inp = self.ui.get_input()
             self.engine.handle_input(inp)
