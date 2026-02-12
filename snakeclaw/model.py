@@ -2,7 +2,7 @@
 
 import random
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 class Direction(Enum):
@@ -141,18 +141,22 @@ class Snake:
 class Food:
     """Food position in the playfield."""
 
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, initial_position: Optional[Tuple[int, int]] = None):
         """
         Initialize food at a random position.
 
         Args:
             width: Playfield width in columns
             height: Playfield height in rows
+            initial_position: Optional initial position to use instead of random
         """
         self.width = width
         self.height = height
         self.position: Tuple[int, int] = (0, 0)
-        self.place()
+        if initial_position is not None:
+            self.position = initial_position
+        else:
+            self.place()
 
     def place(self, snake_body: List[Tuple[int, int]] = None) -> None:
         """
@@ -186,4 +190,5 @@ class Food:
         Returns:
             True if food was eaten, False otherwise
         """
+        print(f"DEBUG check_eaten: snake_head={snake_head}, food.position={self.position}, result={self.get_position() == snake_head}")
         return self.get_position() == snake_head
