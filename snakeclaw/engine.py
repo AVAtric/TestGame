@@ -107,7 +107,7 @@ POINTS_PER_LEVEL = 5  # advance level every N points
 class GameEngine:
     """Core game logic with no terminal dependency."""
 
-    def __init__(self, width: int = 60, height: int = 30,
+    def __init__(self, width: int = 48, height: int = 30,
                  highscore_path: Optional[str] = None):
         self.width = width
         self.height = height

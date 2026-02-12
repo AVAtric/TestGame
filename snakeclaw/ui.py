@@ -50,7 +50,7 @@ _FOOD_CHAR = '●●'
 class CursesUI:
     """Terminal UI implementation using curses."""
 
-    def __init__(self, width: int = 60, height: int = 30):
+    def __init__(self, width: int = 48, height: int = 30):
         # play-area dimensions (inside the border) - logical grid
         self.play_w = width
         self.play_h = height

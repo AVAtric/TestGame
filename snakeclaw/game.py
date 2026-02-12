@@ -12,7 +12,7 @@ from .ui import CursesUI
 class SnakeGame:
     """Main game controller."""
 
-    def __init__(self, width: int = 60, height: int = 30):
+    def __init__(self, width: int = 48, height: int = 30):
         self.width = width
         self.height = height
         self.engine = GameEngine(width, height)
