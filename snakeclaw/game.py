@@ -33,7 +33,7 @@ class SnakeGame:
         self.food: Optional[Food] = None
         self.score: int = 0
         self.game_status: GameStatus = GameStatus.PLAYING
-        self.tick_rate: float = 0.1  # 10 moves per second
+        self.tick_rate: float = 0.25  # 4 moves per second (increased for better input handling)
 
     def init_game(self) -> None:
         """Initialize or reinitialize the game."""
