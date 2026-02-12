@@ -122,7 +122,7 @@ class Snake:
         if new_head[0] < 0 or new_head[0] >= height or new_head[1] < 0 or new_head[1] >= width:
             return True
 
-        # Self collision (exclude tail if not growing)
+        # Self collision (exclude tail if not growing, exclude head to avoid false positive)
         if self.grow:
             body_to_check = self.body
         else:
