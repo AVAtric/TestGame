@@ -75,17 +75,14 @@ class Snake:
         self.body.insert(0, new_head)
         if not self.grow:
             self.body.pop()
+        else:
+            self.grow = False  # Reset grow flag after growing
 
     def set_direction(self, direction: Direction) -> None:
         """Change direction, preventing 180-degree turns."""
         if direction == OPPOSITE.get(self.direction):
             return
         self.direction = direction
-
-    @staticmethod
-    def _opposite_direction(direction: Direction) -> Direction:
-        """Get the opposite direction."""
-        return OPPOSITE.get(direction, direction)
 
     def get_head(self) -> Tuple[int, int]:
         return self.body[0]

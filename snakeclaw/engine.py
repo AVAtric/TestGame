@@ -237,4 +237,3 @@ class GameEngine:
                              1 + self.score // POINTS_PER_LEVEL)
 
         self.snake.move()
-        self.snake.grow = False

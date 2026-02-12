@@ -100,10 +100,6 @@ class TestSnakeDirection:
         s.set_direction(Direction.RIGHT)
         assert s.direction == Direction.LEFT
 
-    def test_opposite_direction_static(self):
-        assert Snake._opposite_direction(Direction.UP) == Direction.DOWN
-        assert Snake._opposite_direction(Direction.LEFT) == Direction.RIGHT
-
 
 class TestSnakeCollision:
     def test_wall_right(self):

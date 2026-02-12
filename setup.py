@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "snakeclaw=snakeclaw.__main__:main",
+            "snakeclaw=snakeclaw.game:main",
         ],
     },
     python_requires=">=3.12",
