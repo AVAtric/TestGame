@@ -1,11 +1,6 @@
 """Integration-level tests for SnakeGame (mocked UI)."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-
 from snakeclaw.game import SnakeGame
-from snakeclaw.model import Action, Direction, GameState
-
 
 class TestSnakeGameInit:
     def test_creates_engine_and_ui(self):

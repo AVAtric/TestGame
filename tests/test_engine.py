@@ -2,9 +2,6 @@
 
 import json
 import os
-import tempfile
-
-import pytest
 
 from snakeclaw.engine import GameEngine, HighScoreManager, HighScoreEntry, SPEED_LEVELS, POINTS_PER_LEVEL
 from snakeclaw.model import Action, Direction, GameState
@@ -12,24 +9,26 @@ from snakeclaw.model import Action, Direction, GameState
 
 # ── HighScoreManager ──────────────────────────────────────────────────────
 
+def _tmp_path(tmp_path):
+    return str(tmp_path / "hs.json")
+
+
 class TestHighScoreManager:
-    def _tmp_path(self, tmp_path):
-        return str(tmp_path / "hs.json")
 
     def test_empty_on_missing_file(self, tmp_path):
-        mgr = HighScoreManager(path=self._tmp_path(tmp_path))
+        mgr = HighScoreManager(path=_tmp_path(tmp_path))
         assert mgr.get_top() == []
         assert mgr.best == 0
 
     def test_add_and_retrieve(self, tmp_path):
-        mgr = HighScoreManager(path=self._tmp_path(tmp_path))
+        mgr = HighScoreManager(path=_tmp_path(tmp_path))
         mgr.add(42, "AAA")
         assert mgr.best == 42
         assert len(mgr.get_top()) == 1
         assert mgr.get_top()[0].initials == "AAA"
 
     def test_persist_and_reload(self, tmp_path):
-        p = self._tmp_path(tmp_path)
+        p = _tmp_path(tmp_path)
         mgr = HighScoreManager(path=p)
         mgr.add(10); mgr.add(20); mgr.add(30)
         mgr2 = HighScoreManager(path=p)
@@ -37,25 +36,25 @@ class TestHighScoreManager:
         assert len(mgr2.get_top()) == 3
 
     def test_max_entries(self, tmp_path):
-        mgr = HighScoreManager(path=self._tmp_path(tmp_path), max_entries=3)
+        mgr = HighScoreManager(path=_tmp_path(tmp_path), max_entries=3)
         for i in range(5):
             mgr.add(i * 10)
         assert len(mgr.get_top()) == 3
         assert mgr.get_top()[0].score == 40
 
     def test_is_high_score_empty(self, tmp_path):
-        mgr = HighScoreManager(path=self._tmp_path(tmp_path))
+        mgr = HighScoreManager(path=_tmp_path(tmp_path))
         assert mgr.is_high_score(1)
         assert not mgr.is_high_score(0)
 
     def test_is_high_score_full(self, tmp_path):
-        mgr = HighScoreManager(path=self._tmp_path(tmp_path), max_entries=2)
+        mgr = HighScoreManager(path=_tmp_path(tmp_path), max_entries=2)
         mgr.add(10); mgr.add(20)
         assert mgr.is_high_score(15)  # beats min(10)
         assert not mgr.is_high_score(5)
 
     def test_corrupted_file(self, tmp_path):
-        p = self._tmp_path(tmp_path)
+        p = _tmp_path(tmp_path)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w") as f:
             f.write("NOT JSON")
@@ -63,7 +62,7 @@ class TestHighScoreManager:
         assert mgr.get_top() == []
 
     def test_wrong_structure_file(self, tmp_path):
-        p = self._tmp_path(tmp_path)
+        p = _tmp_path(tmp_path)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w") as f:
             json.dump({"not": "a list"}, f)
@@ -124,14 +123,16 @@ class TestEngineMenu:
         assert e.state == GameState.QUIT
 
 
+def _playing(tmp_path):
+    e = GameEngine(highscore_path=str(tmp_path / "hs.json"))
+    e.new_game()
+    return e
+
+
 class TestEnginePlaying:
-    def _playing(self, tmp_path):
-        e = GameEngine(highscore_path=str(tmp_path / "hs.json"))
-        e.new_game()
-        return e
 
     def test_new_game_state(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         assert e.state == GameState.PLAYING
         assert e.score == 0
         assert e.level == 1
@@ -139,35 +140,35 @@ class TestEnginePlaying:
         assert e.food is not None
 
     def test_direction_change(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         e.handle_input(Direction.DOWN)
         assert e.snake.direction == Direction.DOWN
 
     def test_pause(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         e.handle_input(Action.PAUSE)
         assert e.state == GameState.PAUSED
 
     def test_quit_while_playing(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         e.handle_input(Action.QUIT)
         assert e.state == GameState.QUIT
 
     def test_tick_moves_snake(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         head_before = e.snake.get_head()
         e.tick()
         assert e.snake.get_head() != head_before
 
     def test_tick_does_nothing_when_paused(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         e.state = GameState.PAUSED
         head_before = e.snake.get_head()
         e.tick()
         assert e.snake.get_head() == head_before
 
     def test_eat_food_scores(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         head = e.snake.get_head()
         d = e.snake.direction.value
         next_pos = (head[0] + d[0], head[1] + d[1])
@@ -176,7 +177,7 @@ class TestEnginePlaying:
         assert e.score == 1
 
     def test_eat_food_grows_snake(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         initial_len = len(e.snake.get_body())
         head = e.snake.get_head()
         d = e.snake.direction.value
@@ -185,7 +186,7 @@ class TestEnginePlaying:
         assert len(e.snake.get_body()) == initial_len + 1
 
     def test_wall_collision_game_over(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         # Drive snake into right wall
         for _ in range(100):
             e.tick()
@@ -194,7 +195,7 @@ class TestEnginePlaying:
         assert e.state == GameState.GAME_OVER
 
     def test_level_increases(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         for i in range(POINTS_PER_LEVEL):
             head = e.snake.get_head()
             d = e.snake.direction.value
@@ -203,7 +204,7 @@ class TestEnginePlaying:
         assert e.level == 2
 
     def test_self_collision_game_over(self, tmp_path):
-        e = self._playing(tmp_path)
+        e = _playing(tmp_path)
         # Grow snake then turn into itself
         for i in range(6):
             head = e.snake.get_head()

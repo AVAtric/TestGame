@@ -5,7 +5,7 @@ from __future__ import annotations
 import curses
 from typing import List, Optional, Tuple, Union
 
-from .model import Action, Direction, GameState
+from .model import Action, Direction
 
 
 # ---------------------------------------------------------------------------

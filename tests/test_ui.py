@@ -81,25 +81,27 @@ class TestCursesUINoScreen:
         assert CursesUI().wait_for_key() is None
 
 
+def _ui():
+    ui = CursesUI(width=20, height=10)
+    ui.stdscr = MagicMock()
+    ui._has_colors = False
+    return ui
+
+
 class TestCursesUIWithMock:
-    def _ui(self):
-        ui = CursesUI(width=20, height=10)
-        ui.stdscr = MagicMock()
-        ui._has_colors = False
-        return ui
 
     def test_get_input_maps_key(self):
-        ui = self._ui()
+        ui = _ui()
         ui.stdscr.getch.return_value = ord('p')
         assert ui.get_input() == Action.PAUSE
 
     def test_get_input_no_key(self):
-        ui = self._ui()
+        ui = _ui()
         ui.stdscr.getch.return_value = -1
         assert ui.get_input() is None
 
     def test_get_input_curses_error(self):
-        ui = self._ui()
+        ui = _ui()
         ui.stdscr.getch.side_effect = curses.error()
         assert ui.get_input() is None
 
@@ -113,7 +115,7 @@ class TestCursesUIWithMock:
         yield
 
     def test_render_frame_calls(self, _patch_acs):
-        ui = self._ui()
+        ui = _ui()
         ui.render_frame([(5, 5), (5, 4)], (3, 3), 10, 20, 2)
         assert ui.stdscr.erase.called
         assert ui.stdscr.refresh.called
