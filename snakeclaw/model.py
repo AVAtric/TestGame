@@ -34,11 +34,11 @@ class Snake:
         self.direction: Direction = direction
         # Build body with head at start_pos and the rest behind in the opposite direction
         self.body: List[Tuple[int, int]] = [start_pos]
+        current_pos = start_pos
         dx, dy = self.direction.value
         for _ in range(1, length):
-            head = self.body[0]
-            new_segment = (head[0] - dx, head[1] - dy)
-            self.body.append(new_segment)
+            current_pos = (current_pos[0] - dx, current_pos[1] - dy)
+            self.body.append(current_pos)
         self.grow: bool = False
 
     def move(self) -> None:

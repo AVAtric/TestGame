@@ -112,8 +112,8 @@ class TestSnake:
         # Move away from head
         snake.move()
         snake.move()
-        # Now snake is at positions (7,5), (8,5), (6,5)
-        # Move left onto (7,5) which is in the body
+        # Now snake is at positions (5,7), (5,6), (5,5)
+        # Move left onto (5,6) which is in the body
         snake.set_direction(Direction.LEFT)
         assert snake.check_next_move(10, 10) is True
 
@@ -121,8 +121,8 @@ class TestSnake:
         snake = Snake((5, 5), length=3, direction=Direction.RIGHT)
         snake.move()
         snake.move()
-        # Now snake is at positions (6,5), (7,5), (8,5)
-        # Move left onto (7,5) which is in the body
+        # Now snake is at positions (5,7), (5,6), (5,5)
+        # Move left onto (5,6) which is in the body
         snake.set_direction(Direction.LEFT)
         assert snake.check_next_move(10, 10) is True
 
