@@ -103,6 +103,10 @@ class Snake:
         """
         head = self.get_head()
 
+        # Wall collision
+        if head[0] < 0 or head[0] >= height or head[1] < 0 or head[1] >= width:
+            return True
+
         # Self collision (skip the head when checking for self-collision)
         body = self.body[1:]
         if head in body:
@@ -163,22 +167,28 @@ class Food:
         else:
             self.place()
 
-    def place(self, snake_body: List[Tuple[int, int]] = None) -> None:
+    def place(self, pos: Tuple[int, int] = None, snake_body: List[Tuple[int, int]] = None) -> None:
         """
-        Place food at a random position not occupied by the snake.
+        Place food at a specific position or randomly avoiding the snake body.
 
         Args:
-            snake_body: Snake body positions to avoid
+            pos: Optional explicit position to place the food.
+            snake_body: List of positions occupied by the snake.
         """
+        if pos is not None:
+            # Directly set the provided position
+            self.position = pos
+            return
+
         while True:
             # Generate random position within bounds
-            pos = (
+            p = (
                 random.randint(0, self.height - 1),
                 random.randint(0, self.width - 1)
             )
             # Ensure food is not on snake body
-            if snake_body is None or pos not in snake_body:
-                self.position = pos
+            if snake_body is None or p not in snake_body:
+                self.position = p
                 break
 
     def get_position(self) -> Tuple[int, int]:
