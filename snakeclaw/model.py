@@ -35,12 +35,13 @@ class Snake:
             direction: Initial direction of movement
         """
         self.direction: Direction = direction
-        # Build body with head at start_pos and the rest behind in the opposite direction
+        # Build body with head at start_pos and the rest behind it in the opposite direction
         self.body: List[Tuple[int, int]] = [start_pos]
-        current_pos = start_pos
         dx, dy = direction.value
+        # Move backwards from start_pos
+        current_pos = start_pos
         for _ in range(1, length):
-            current_pos = (current_pos[0] + dx, current_pos[1] + dy)
+            current_pos = (current_pos[0] - dx, current_pos[1] - dy)
             self.body.append(current_pos)
         self.grow: bool = False
 

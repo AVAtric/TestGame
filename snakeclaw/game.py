@@ -105,7 +105,7 @@ class SnakeGame:
         if self.food.check_eaten(next_head):
             self.score += 1
             self.snake.grow_snake()
-            self.food.place(self.snake.get_body())
+            self.food.place(snake_body=self.snake.get_body())
 
         # Move snake
         self.snake.move()
@@ -147,31 +147,37 @@ class SnakeGame:
         # Initialize game
         self.init_game()
 
-        # Main game loop
-        last_tick = time.time()
-        while self.game_status == GameStatus.PLAYING:
-            # Check for input
-            if not self.handle_input():
+        running = True
+        while running:
+            # Main game loop
+            last_tick = time.time()
+            while self.game_status == GameStatus.PLAYING:
+                # Check for input
+                if not self.handle_input():
+                    running = False
+                    break
+
+                # Update game state
+                self.update()
+
+                # Render
+                self.render()
+
+                # Maintain tick rate
+                current_time = time.time()
+                elapsed = current_time - last_tick
+                if elapsed < self.tick_rate:
+                    time.sleep(self.tick_rate - elapsed)
+                last_tick = time.time()
+
+            if not running:
                 break
 
-            # Update game state
-            self.update()
-
-            # Render
-            self.render()
-
-            # Maintain tick rate
-            current_time = time.time()
-            elapsed = current_time - last_tick
-            if elapsed < self.tick_rate:
-                time.sleep(self.tick_rate - elapsed)
-            last_tick = time.time()
-
-        # Game over handling
-        self.ui.show_game_over(self.score)
-
-        # Wait for restart or quit
-        self.ui.wait_for_start()
+            # Game over handling - wait for restart or quit
+            while self.game_status == GameStatus.GAME_OVER:
+                if not self.handle_input():
+                    running = False
+                    break
 
         self.ui.stop()
 

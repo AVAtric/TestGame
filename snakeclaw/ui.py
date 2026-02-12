@@ -57,15 +57,15 @@ class CursesUI:
 
         for i in range(self.height):
             for j in range(self.width):
-                if i == 0 or i == self.height - 1:
-                    if j == 0 or j == self.width - 1:
+                if i == 0:
+                    if j == 0:
                         self.stdscr.addch(i, j, curses.ACS_ULCORNER)
                     elif j == self.width - 1:
                         self.stdscr.addch(i, j, curses.ACS_URCORNER)
                     else:
                         self.stdscr.addch(i, j, curses.ACS_HLINE)
                 elif i == self.height - 1:
-                    if j == 0 or j == self.width - 1:
+                    if j == 0:
                         self.stdscr.addch(i, j, curses.ACS_LLCORNER)
                     elif j == self.width - 1:
                         self.stdscr.addch(i, j, curses.ACS_LRCORNER)
@@ -117,16 +117,14 @@ class CursesUI:
             return
 
         status_str = status.value.upper()
-        message = f"Score: {score} | {status_str} (Press R to restart, Q to quit)"
+        message = f"Score: {score} | {status_str} | Q=quit"
 
-        # Draw at bottom of screen
-        if self.height >= 2:
-            row = self.height - 2
-            for col, char in enumerate(message[:self.width - 1]):
-                try:
-                    self.stdscr.addch(row, col, char)
-                except curses.error:
-                    pass
+        # Draw below the border
+        row = self.height
+        try:
+            self.stdscr.addstr(row, 0, message[:self.width])
+        except curses.error:
+            pass
 
     def refresh(self) -> None:
         """Refresh the screen."""

@@ -4,9 +4,101 @@ handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
 handle_input: Quit requested
 handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
 handle_input: Restarting game
+get_input: stdscr is None
 handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
 handle_input: Got None from get_input
 handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
 handle_input: Quit requested
 handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
 handle_input: Restarting game
+get_input: stdscr is None
+handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
+handle_input: Got None from get_input
+handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
+handle_input: Quit requested
+handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
+handle_input: Restarting game
+get_input: Raw key code = 87
+get_input: Recognized key = 87, char = W
+get_input: Returning Direction.UP (W key)
+get_input: Raw key code = 97
+get_input: Recognized key = 97, char = a
+get_input: Returning Direction.LEFT (A key)
+get_input: curses.error = 
+get_input: Raw key code = 100
+get_input: Recognized key = 100, char = d
+get_input: Returning Direction.RIGHT (D key)
+get_input: Raw key code = 258
+get_input: Returning Direction.DOWN
+get_input: Raw key code = 260
+get_input: Returning Direction.LEFT
+get_input: stdscr is None
+get_input: Raw key code = 120
+get_input: Key 120 did not match any direction, returning None
+get_input: Raw key code = 113
+get_input: Recognized key = 113, char = q
+get_input: Returning 'QUIT' (Quit command)
+get_input: Raw key code = 81
+get_input: Recognized key = 81, char = Q
+get_input: Returning 'QUIT' (Quit command)
+get_input: Raw key code = 114
+get_input: Recognized key = 114, char = r
+get_input: Returning 'RESET' (Restart command)
+get_input: Raw key code = 82
+get_input: Recognized key = 82, char = R
+get_input: Returning 'RESET' (Restart command)
+get_input: Raw key code = 261
+get_input: Returning Direction.RIGHT
+get_input: Raw key code = 115
+get_input: Recognized key = 115, char = s
+get_input: Returning Direction.DOWN (S key)
+get_input: Raw key code = 259
+get_input: Returning Direction.UP
+get_input: Raw key code = 119
+get_input: Recognized key = 119, char = w
+get_input: Returning Direction.UP (W key)
+handle_input: Input received: Direction.UP, status: GameStatus.PLAYING
+handle_input: Got None from get_input
+handle_input: Input received: Direction.QUIT, status: GameStatus.PLAYING
+handle_input: Quit requested
+handle_input: Input received: Direction.RESET, status: GameStatus.GAME_OVER
+handle_input: Restarting game
+get_input: Raw key code = 87
+get_input: Recognized key = 87, char = W
+get_input: Returning Direction.UP (W key)
+get_input: Raw key code = 97
+get_input: Recognized key = 97, char = a
+get_input: Returning Direction.LEFT (A key)
+get_input: curses.error = 
+get_input: Raw key code = 100
+get_input: Recognized key = 100, char = d
+get_input: Returning Direction.RIGHT (D key)
+get_input: Raw key code = 258
+get_input: Returning Direction.DOWN
+get_input: Raw key code = 260
+get_input: Returning Direction.LEFT
+get_input: stdscr is None
+get_input: Raw key code = 120
+get_input: Key 120 did not match any direction, returning None
+get_input: Raw key code = 113
+get_input: Recognized key = 113, char = q
+get_input: Returning 'QUIT' (Quit command)
+get_input: Raw key code = 81
+get_input: Recognized key = 81, char = Q
+get_input: Returning 'QUIT' (Quit command)
+get_input: Raw key code = 114
+get_input: Recognized key = 114, char = r
+get_input: Returning 'RESET' (Restart command)
+get_input: Raw key code = 82
+get_input: Recognized key = 82, char = R
+get_input: Returning 'RESET' (Restart command)
+get_input: Raw key code = 261
+get_input: Returning Direction.RIGHT
+get_input: Raw key code = 115
+get_input: Recognized key = 115, char = s
+get_input: Returning Direction.DOWN (S key)
+get_input: Raw key code = 259
+get_input: Returning Direction.UP
+get_input: Raw key code = 119
+get_input: Recognized key = 119, char = w
+get_input: Returning Direction.UP (W key)

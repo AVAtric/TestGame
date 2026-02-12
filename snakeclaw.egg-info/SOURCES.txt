@@ -12,3 +12,4 @@ snakeclaw.egg-info/entry_points.txt
 snakeclaw.egg-info/top_level.txt
 tests/test_game.py
 tests/test_model.py
+tests/test_ui.py

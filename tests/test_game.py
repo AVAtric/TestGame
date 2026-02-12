@@ -188,9 +188,12 @@ class TestSnakeGame(unittest.TestCase):
         game = SnakeGame()
         game.init_game()
 
-        # Place food at the snake's tail position
-        tail = game.snake.get_tail()
-        game.food.place(tail)
+        # Place food at the next head position (where the snake will move)
+        next_head = (
+            game.snake.get_head()[0] + game.snake.direction.value[0],
+            game.snake.get_head()[1] + game.snake.direction.value[1]
+        )
+        game.food.place(next_head)
         game.update()
 
         self.assertEqual(game.score, 1)
@@ -212,9 +215,23 @@ class TestSnakeGame(unittest.TestCase):
         game = SnakeGame()
         game.init_game()
 
-        # Create self-collision by moving backwards
+        # Grow the snake enough to create a self-collision scenario
+        # Initial body: [(15, 15), (15, 14), (15, 13)], direction = RIGHT
+        # Grow by placing food ahead repeatedly
+        for i in range(5):
+            next_head = (
+                game.snake.get_head()[0] + game.snake.direction.value[0],
+                game.snake.get_head()[1] + game.snake.direction.value[1]
+            )
+            game.food.place(pos=next_head)
+            game.update()
+
+        # Now snake is long enough. Turn into itself: DOWN, LEFT, UP
+        game.snake.set_direction(Direction.DOWN)
+        game.update()
         game.snake.set_direction(Direction.LEFT)
         game.update()
+        game.snake.set_direction(Direction.UP)
         game.update()
 
         self.assertEqual(game.game_status, GameStatus.GAME_OVER)
