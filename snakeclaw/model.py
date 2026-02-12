@@ -11,6 +11,8 @@ class Direction(Enum):
     DOWN = (1, 0)
     LEFT = (0, -1)
     RIGHT = (0, 1)
+    RESET = (0, 0)
+    QUIT = (-1, -1)
 
 
 class GameStatus(Enum):

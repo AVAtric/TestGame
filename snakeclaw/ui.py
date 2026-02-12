@@ -159,10 +159,10 @@ class CursesUI:
         # Handle quit and restart first
         if key == ord('q') or key == ord('Q'):
             debug_log("get_input: Returning 'QUIT' (Quit command)")
-            return 'QUIT'  # Quit command sentinel
+            return Direction.QUIT  # Quit command sentinel
         elif key == ord('r') or key == ord('R'):
             debug_log("get_input: Returning 'RESET' (Restart command)")
-            return 'RESET'  # Restart command
+            return Direction.RESET  # Restart command
 
         # Then handle direction keys
         if key == curses.KEY_UP:
