@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: snakeclaw
+Version: 0.1.0
+Summary: A simple Snake game for the terminal
+Author: Your Name
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Games/Entertainment :: Arcade
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.12
+Dynamic: author
+Dynamic: classifier
+Dynamic: requires-python
+Dynamic: summary

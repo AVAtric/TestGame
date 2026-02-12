@@ -1,0 +1,13 @@
+README.md
+setup.py
+snakeclaw/__init__.py
+snakeclaw/__main__.py
+snakeclaw/game.py
+snakeclaw/model.py
+snakeclaw/ui.py
+snakeclaw.egg-info/PKG-INFO
+snakeclaw.egg-info/SOURCES.txt
+snakeclaw.egg-info/dependency_links.txt
+snakeclaw.egg-info/entry_points.txt
+snakeclaw.egg-info/top_level.txt
+tests/test_model.py
