@@ -73,17 +73,13 @@ class SnakeGame:
             return True
 
         # Handle playing state
-        # Quit request (using Direction.UP as quit command for tests)
-        if direction == Direction.UP:
-            debug_log("handle_input: Quit requested via UP key")
-            self.game_status = GameStatus.QUIT
-            return False
+        # Quit request
         if direction == 'QUIT':
             debug_log("handle_input: Quit requested")
             self.game_status = GameStatus.QUIT
             return False
 
-        # Direction input
+        # Direction input - only set if valid
         if direction in [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
             self.snake.set_direction(direction)
 
