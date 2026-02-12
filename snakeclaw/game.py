@@ -73,6 +73,8 @@ class SnakeGame:
 
         # Move snake
         self.snake.move()
+        # Reset grow flag for next update cycle
+        self.snake.grow = False
 
         # Check for food collision
         if self.food.check_eaten(self.snake.get_head()):
