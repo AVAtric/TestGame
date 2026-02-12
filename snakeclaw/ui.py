@@ -41,20 +41,23 @@ def map_key(key: int) -> Optional[Union[Direction, Action]]:
 # ---------------------------------------------------------------------------
 
 # Box-drawing via curses ACS characters
-_SNAKE_HEAD = '◆'
-_SNAKE_BODY = '█'
-_FOOD_CHAR = '●'
+# Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
+_SNAKE_HEAD = '◆◆'
+_SNAKE_BODY = '██'
+_FOOD_CHAR = '●●'
 
 
 class CursesUI:
     """Terminal UI implementation using curses."""
 
     def __init__(self, width: int = 60, height: int = 30):
-        # play-area dimensions (inside the border)
+        # play-area dimensions (inside the border) - logical grid
         self.play_w = width
         self.play_h = height
+        # screen dimensions: use 2 columns per game cell for better aspect ratio
+        self.screen_w = width * 2
         # total window: border + HUD row
-        self.win_w = width + 2   # left/right border cols
+        self.win_w = self.screen_w + 2   # left/right border cols
         self.win_h = height + 2  # top/bottom border rows
         self.stdscr: Optional[curses.window] = None
         self._has_colors = False
@@ -160,36 +163,36 @@ class CursesUI:
         attr = self._attr(4)
         # top row
         self._safe_addch(0, 0, curses.ACS_ULCORNER, attr)
-        for c in range(1, self.play_w + 1):
+        for c in range(1, self.screen_w + 1):
             self._safe_addch(0, c, curses.ACS_HLINE, attr)
-        self._safe_addch(0, self.play_w + 1, curses.ACS_URCORNER, attr)
+        self._safe_addch(0, self.screen_w + 1, curses.ACS_URCORNER, attr)
         # sides
         for r in range(1, self.play_h + 1):
             self._safe_addch(r, 0, curses.ACS_VLINE, attr)
-            self._safe_addch(r, self.play_w + 1, curses.ACS_VLINE, attr)
+            self._safe_addch(r, self.screen_w + 1, curses.ACS_VLINE, attr)
         # bottom row
         self._safe_addch(self.play_h + 1, 0, curses.ACS_LLCORNER, attr)
-        for c in range(1, self.play_w + 1):
+        for c in range(1, self.screen_w + 1):
             self._safe_addch(self.play_h + 1, c, curses.ACS_HLINE, attr)
-        self._safe_addch(self.play_h + 1, self.play_w + 1,
+        self._safe_addch(self.play_h + 1, self.screen_w + 1,
                          curses.ACS_LRCORNER, attr)
 
     def draw_snake(self, body: List[Tuple[int, int]]) -> None:
         if not self.stdscr or not body:
             return
-        # head
+        # head - use 2 columns per cell (multiply col by 2)
         attr_head = self._attr(1, bold=True)
-        self._safe_addstr(body[0][0] + 1, body[0][1] + 1,
+        self._safe_addstr(body[0][0] + 1, body[0][1] * 2 + 1,
                           _SNAKE_HEAD, attr_head)
         # body
         attr_body = self._attr(1)
         for part in body[1:]:
-            self._safe_addstr(part[0] + 1, part[1] + 1, _SNAKE_BODY, attr_body)
+            self._safe_addstr(part[0] + 1, part[1] * 2 + 1, _SNAKE_BODY, attr_body)
 
     def draw_food(self, pos: Tuple[int, int]) -> None:
         if not self.stdscr:
             return
-        self._safe_addstr(pos[0] + 1, pos[1] + 1, _FOOD_CHAR,
+        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, _FOOD_CHAR,
                           self._attr(2, bold=True))
 
     def draw_hud(self, score: int, high_score: int, level: int,
