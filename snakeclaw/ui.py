@@ -156,6 +156,15 @@ class CursesUI:
                    ord('d'), ord('D'), ord('r'), ord('R'), ord('q'), ord('Q')]:
             debug_log(f"get_input: Recognized key = {key}, char = {chr(key) if key > 0 else 'N/A'}")
 
+        # Handle quit and restart first
+        if key == ord('q') or key == ord('Q'):
+            debug_log("get_input: Returning 'QUIT' (Quit command)")
+            return 'QUIT'  # Quit command sentinel
+        elif key == ord('r') or key == ord('R'):
+            debug_log("get_input: Returning Direction.RIGHT (Restart command)")
+            return Direction.RIGHT  # Restart command
+
+        # Then handle direction keys
         if key == curses.KEY_UP:
             debug_log("get_input: Returning Direction.UP")
             return Direction.UP
@@ -180,12 +189,6 @@ class CursesUI:
         elif key == ord('d') or key == ord('D'):
             debug_log("get_input: Returning Direction.RIGHT (D key)")
             return Direction.RIGHT
-        elif key == ord('q') or key == ord('Q'):
-            debug_log("get_input: Returning None (Quit command)")
-            return None  # Quit command
-        elif key == ord('r') or key == ord('R'):
-            debug_log("get_input: Returning Direction.RIGHT (Restart command)")
-            return Direction.RIGHT  # Restart command
 
         debug_log(f"get_input: Key {key} did not match any direction, returning None")
         return None

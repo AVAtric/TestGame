@@ -66,20 +66,21 @@ class SnakeGame:
                 debug_log("handle_input: Restarting game")
                 self.init_game()
                 return True
-            # Q or q means quit
-            debug_log("handle_input: Quit requested")
-            return False
+            # Quit request
+            if direction == 'QUIT':
+                debug_log("handle_input: Quit requested")
+                return False
+            return True
 
         # Handle playing state
-        # Q or q means quit
-        if direction == Direction.UP:
-            debug_log("handle_input: Quitting game")
+        # Quit request
+        if direction == 'QUIT':
+            debug_log("handle_input: Quit requested")
             self.game_status = GameStatus.QUIT
             return False
 
-        # Update snake direction (ignore RIGHT direction change)
-        if direction != Direction.RIGHT:
-            debug_log(f"handle_input: Setting direction to {direction}")
+        # Direction input
+        if direction in [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
             self.snake.set_direction(direction)
 
         return True

@@ -56,9 +56,8 @@ class Snake:
             self.body.pop()
 
     def set_direction(self, direction: Direction) -> None:
-        """Change the snake's direction. Prevents 180-degree turns."""
-        if self.direction != self._opposite_direction(direction):
-            self.direction = direction
+        """Change the snake's direction."""
+        self.direction = direction
 
     @classmethod
     def _opposite_direction(cls, direction: Direction) -> Direction:
