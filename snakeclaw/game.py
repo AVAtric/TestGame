@@ -44,24 +44,27 @@ class SnakeGame:
         """
         direction = self.ui.get_input()
 
+        # None means no input (non-blocking mode) or quit command
         if direction is None:
             return True
 
-        # Check for restart or quit commands
+        # Handle game over state
         if self.game_status == GameStatus.GAME_OVER:
-            if direction == Direction.RIGHT:  # Any direction means restart
+            # R or r means restart
+            if direction == Direction.RIGHT:
                 self.init_game()
                 return True
-            elif direction == Direction.UP:  # Q or similar (None for quit)
-                return False
-            return True
+            # Q or q means quit
+            return False
 
-        if direction == Direction.UP:  # Q or similar (None for quit)
+        # Handle playing state
+        # Q or q means quit
+        if direction == Direction.UP:
             self.game_status = GameStatus.QUIT
             return False
 
-        # Update snake direction
-        if direction != Direction.RIGHT:  # RIGHT means no direction change
+        # Update snake direction (ignore RIGHT direction change)
+        if direction != Direction.RIGHT:
             self.snake.set_direction(direction)
 
         return True
@@ -72,22 +75,13 @@ class SnakeGame:
             return
 
         # Move snake first
-        print(f"DEBUG game.update: Calling snake.move() before checking food")
         self.snake.move()
-        print(f"DEBUG game.update: After move, snake head={self.snake.get_head()}")
 
         # Check for food collision AFTER moving
-        print(f"DEBUG game.update: Checking if food eaten at new head position")
         if self.food.check_eaten(self.snake.get_head()):
-            print(f"DEBUG: Food eaten! Score incremented from {self.score} to {self.score + 1}")
-            print(f"DEBUG: Calling snake.grow_snake()")
             self.score += 1
             self.snake.grow_snake()
-            print(f"DEBUG: After grow_snake(), grow={self.snake.grow}")
             self.food.place(self.snake.get_body())
-            print(f"DEBUG: After food.place(), grow={self.snake.grow}")
-        else:
-            print(f"DEBUG: Food not eaten")
 
         # Reset grow flag
         self.snake.grow = False
