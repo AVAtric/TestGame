@@ -1,5 +1,6 @@
 """Game models and logic for Snake game."""
 
+import random
 from enum import Enum
 from typing import List, Tuple
 
@@ -161,14 +162,12 @@ class Food:
             snake_body: Snake body positions to avoid
         """
         while True:
+            # Generate random position within bounds
             pos = (
-                (self.height // 2) + (1 if self.height % 2 == 1 else 0),  # Center-ish
-                (self.width // 2) + (1 if self.width % 2 == 1 else 0)
+                random.randint(0, self.height - 1),
+                random.randint(0, self.width - 1)
             )
-            # Add some randomness
-            pos = (pos[0] + (1 if self.height > 10 else 0), pos[1] + (1 if self.width > 10 else 0))
-            pos = (pos[0] + (1 if self.height > 10 else 0), pos[1] + (1 if self.width > 10 else 0))
-
+            # Ensure food is not on snake body
             if snake_body is None or pos not in snake_body:
                 self.position = pos
                 break
