@@ -71,19 +71,25 @@ class SnakeGame:
         if self.game_status != GameStatus.PLAYING or self.snake is None:
             return
 
-        # Check for food collision
-        print(f"DEBUG: check_eaten: snake_head={self.snake.get_head()}, food={self.food.get_position()}")
+        # Move snake first
+        print(f"DEBUG game.update: Calling snake.move() before checking food")
+        self.snake.move()
+        print(f"DEBUG game.update: After move, snake head={self.snake.get_head()}")
+
+        # Check for food collision AFTER moving
+        print(f"DEBUG game.update: Checking if food eaten at new head position")
         if self.food.check_eaten(self.snake.get_head()):
             print(f"DEBUG: Food eaten! Score incremented from {self.score} to {self.score + 1}")
+            print(f"DEBUG: Calling snake.grow_snake()")
             self.score += 1
             self.snake.grow_snake()
+            print(f"DEBUG: After grow_snake(), grow={self.snake.grow}")
             self.food.place(self.snake.get_body())
+            print(f"DEBUG: After food.place(), grow={self.snake.grow}")
         else:
             print(f"DEBUG: Food not eaten")
 
-        # Move snake
-        self.snake.move()
-        # Reset grow flag for next update cycle
+        # Reset grow flag
         self.snake.grow = False
 
         # Check for game over

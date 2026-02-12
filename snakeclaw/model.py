@@ -190,5 +190,4 @@ class Food:
         Returns:
             True if food was eaten, False otherwise
         """
-        print(f"DEBUG check_eaten: snake_head={snake_head}, food.position={self.position}, result={self.get_position() == snake_head}")
         return self.get_position() == snake_head
