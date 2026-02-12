@@ -1,1 +1,7 @@
-# Snake for console
+# Snake for consol
+
+
+
+## License
+
+MIT Licensee
