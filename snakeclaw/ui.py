@@ -227,13 +227,18 @@ class CursesUI:
         menu_spacing = len(items) * 2  # 2 rows per item
         total_content_height = logo_lines + 2 + menu_spacing + 2  # +2 for gaps, +2 for high score area
         
-        # Start position - center the entire menu content
-        start_row = max(2, (self.win_h - total_content_height) // 2)
+        # Start position - center the entire menu content vertically
+        start_row = max(1, (self.win_h - total_content_height) // 2)
         
-        # ASCII art title
+        # ASCII art title - center as a unified block
+        # Find longest line for proper alignment
+        max_logo_width = max(len(line) for line in GAME_TITLE) if GAME_TITLE else 0
+        logo_left_col = max(0, (self.win_w - max_logo_width) // 2)
+        
         current_row = start_row
         for i, line in enumerate(GAME_TITLE):
-            self._safe_addstr(current_row + i, self._center_col(line), line,
+            # Left-align within the centered block for consistent logo rendering
+            self._safe_addstr(current_row + i, logo_left_col, line,
                               self._attr(COLOR_SNAKE, bold=True))
         
         # Menu items start after logo + gap
@@ -244,7 +249,7 @@ class CursesUI:
             attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == selected else self._attr(COLOR_TITLE)
             self._safe_addstr(menu_start + i * 2, self._center_col(text), text, attr)
 
-        # High score display (without emoji)
+        # High score display
         if high_score > 0:
             hs = f"Best: {high_score}"
             hs_row = menu_start + len(items) * 2 + 1
