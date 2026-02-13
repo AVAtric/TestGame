@@ -125,10 +125,13 @@ class Food:
     """Food position in the playfield."""
 
     def __init__(self, width: int, height: int,
-                 initial_position: Optional[Tuple[int, int]] = None):
+                 initial_position: Optional[Tuple[int, int]] = None,
+                 food_chars: Optional[List[str]] = None):
         self.width = width
         self.height = height
         self.position: Tuple[int, int] = (0, 0)
+        self.food_chars = food_chars or ['🟩']
+        self.current_char: str = random.choice(self.food_chars)
         if initial_position is not None:
             self.position = initial_position
         else:
@@ -136,6 +139,9 @@ class Food:
 
     def place(self, pos: Optional[Tuple[int, int]] = None,
               snake_body: Optional[List[Tuple[int, int]]] = None) -> None:
+        # Pick a new random food character each time we place
+        self.current_char = random.choice(self.food_chars)
+        
         if pos is not None:
             self.position = pos
             return
@@ -148,6 +154,9 @@ class Food:
 
     def get_position(self) -> Tuple[int, int]:
         return self.position
+    
+    def get_char(self) -> str:
+        return self.current_char
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
         return self.get_position() == snake_head

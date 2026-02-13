@@ -95,6 +95,7 @@ class SnakeGame:
                 self.engine.level,
                 paused=(self.engine.state == GameState.PAUSED),
                 snake_direction=self.engine.snake.direction,
+                food_char=self.engine.food.get_char(),
             )
 
 

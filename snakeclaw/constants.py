@@ -34,7 +34,10 @@ INITIALS_LENGTH = 3
 # Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
 SNAKE_HEAD = '▶▶'  # default / fallback
 SNAKE_BODY = '▓▓'  # fallback
-FOOD_CHAR = '🟩'
+
+# Food characters - randomly selected each time food spawns
+FOOD_CHARS = ['🟢', '🟨', '🔴', '⬛', '💚', '🌟', '🟩']
+FOOD_CHAR = '🟩'  # fallback if list is empty
 
 # Direction-specific snake segments - works for both head and body!
 SNAKE_SEGMENTS = {
@@ -86,7 +89,7 @@ HELP_TEXT = [
     "M / Esc ─ back to menu",
     "Q ─ quit",
     "",
-    "Eat 🍎 to grow and score points.",
+    "Eat food to grow and score points.",
     "Avoid walls and your own tail!",
     "Speed increases every 5 points.",
     "Enter your initials for high scores!",

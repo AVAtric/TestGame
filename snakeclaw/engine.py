@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from .constants import (
-    DEFAULT_HEIGHT, DEFAULT_WIDTH, INITIAL_SNAKE_LENGTH,
+    DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHARS, INITIAL_SNAKE_LENGTH,
     INITIALS_LENGTH, MAX_HIGH_SCORE_ENTRIES, MENU_ITEMS,
     POINTS_PER_LEVEL, SPEED_LEVELS
 )
@@ -134,7 +134,7 @@ class GameEngine:
     def new_game(self) -> None:
         self.snake = Snake((self.height // 2, self.width // 4),
                            length=INITIAL_SNAKE_LENGTH, direction=Direction.RIGHT)
-        self.food = Food(self.width, self.height)
+        self.food = Food(self.width, self.height, food_chars=FOOD_CHARS)
         # Ensure food not on snake
         self.food.place(snake_body=self.snake.get_body())
         self.score = 0

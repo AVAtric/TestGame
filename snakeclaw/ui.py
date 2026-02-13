@@ -215,10 +215,10 @@ class CursesUI:
             
             self._safe_addstr(current[0] + 1, current[1] * 2 + 1, segment_char, attr_segment)
 
-    def draw_food(self, pos: Tuple[int, int]) -> None:
+    def draw_food(self, pos: Tuple[int, int], char: str = FOOD_CHAR) -> None:
         if not self.stdscr:
             return
-        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, FOOD_CHAR,
+        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, char,
                           self._attr(COLOR_FOOD, bold=True))
 
     def draw_hud(self, score: int, high_score: int, level: int,
@@ -391,12 +391,13 @@ class CursesUI:
                      food_pos: Tuple[int, int], score: int,
                      high_score: int, level: int,
                      paused: bool = False, 
-                     snake_direction: Optional[Direction] = None) -> None:
+                     snake_direction: Optional[Direction] = None,
+                     food_char: str = FOOD_CHAR) -> None:
         """Render one complete game frame (border + objects + HUD)."""
         self.clear()
         self.draw_border()
         self.draw_snake(snake_body, snake_direction)
-        self.draw_food(food_pos)
+        self.draw_food(food_pos, food_char)
         self.draw_hud(score, high_score, level, paused)
         if paused:
             self.show_paused()

@@ -14,6 +14,7 @@ A polished terminal Snake game with modern features and clean architecture.
 - 💾 **Persistent storage** — Top 10 scores saved to JSON
 - 🧪 **Well-tested** — 115 unit tests with full coverage
 - 🐍 **Modern Python** — Type hints, clean separation of concerns
+- 🎲 **Random food variety** — Different emoji food spawns each time (🟢, 🟨, 🔴, ⬛, 💚, 🌟, 🟩)
 
 ## 🚀 Quick Start
 
@@ -41,7 +42,7 @@ python3 -m snakeclaw
 
 1. **Navigate the menu** with ↑/↓ and Enter
 2. **Move the snake** with arrow keys or WASD
-3. **Eat food (●●)** to grow and score points
+3. **Eat food** (random emojis) to grow and score points
 4. **Avoid walls and yourself** — collision ends the game
 5. **Enter your name** when you achieve a high score!
 6. **Press M** anytime to return to menu
