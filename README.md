@@ -3,13 +3,13 @@
 A polished terminal Snake game built with Python and curses.
 <div align="center">
 <pre>
-    ╔═╗╔╗╔╔═╗╦╔═╔═╗
-    ╚═╗║║║╠═╣╠╩╗║╣
-    ╚═╝╝╚╝╩ ╩╩ ╩╚═╝
-     ╔═╗╦  ╔═╗╦ ╦
-     ║  ║  ╠═╣║ ║
-     ╚═╝╩═╝╩ ╩╚═╝
-  ─ T E R M I N A L ─
+   ╔═╗╔╗╔╔═╗╦╔═╔═╗
+  ╚═╗║║║╠═╣╠╩╗║╣
+   ╚═╝╝╚╝╩ ╩╩ ╩╚═╝
+   ╔═╗╦  ╔═╗╦ ╦
+   ║  ║  ╠═╣║ ║
+   ╚═╝╩═╝╩ ╩╚═╝
+   ─ T E R M I N A L ─
 </pre>
 </div>
 
