@@ -2,15 +2,19 @@
 
 A polished terminal Snake game built with Python and curses.
 
-```
-╔═╗╔╗╔╔═╗╦╔═╔═╗
-╚═╗║║║╠═╣╠╩╗║╣
-╚═╝╝╚╝╩ ╩╩ ╩╚═╝
-╔═╗╦  ╔═╗╦ ╦
-║  ║  ╠═╣║ ║
-╚═╝╩═╝╩ ╩╚═╝
-─ T E R M I N A L ─
-```
+<pre>
+<p style="text-align:center;">
+   ╔═╗╔╗╔╔═╗╦╔═╔═╗
+  ╚═╗║║║╠═╣╠╩╗║╣
+   ╚═╝╝╚╝╩ ╩╩ ╩╚═╝
+   ╔═╗╦  ╔═╗╦ ╦
+   ║  ║  ╠═╣║ ║
+   ╚═╝╩═╝╩ ╩╚═╝
+    ─ T E R M I N A L ─
+</p>
+</pre>
+
+
 
 ## Features
 
