@@ -34,7 +34,7 @@ INITIALS_LENGTH = 3
 # Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
 SNAKE_HEAD = '▶▶'  # default / fallback
 SNAKE_BODY = '▓▓'  # fallback
-FOOD_CHAR = '🍎'
+FOOD_CHAR = '🟩'
 
 # Direction-specific snake segments - works for both head and body!
 SNAKE_SEGMENTS = {
