@@ -221,24 +221,36 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        mid_r = self.win_h // 2 - len(items)
+        
+        # Calculate total content height
+        logo_lines = len(GAME_TITLE)
+        menu_spacing = len(items) * 2  # 2 rows per item
+        total_content_height = logo_lines + 2 + menu_spacing + 2  # +2 for gaps, +2 for high score area
+        
+        # Start position - center the entire menu content
+        start_row = max(2, (self.win_h - total_content_height) // 2)
         
         # ASCII art title
+        current_row = start_row
         for i, line in enumerate(GAME_TITLE):
-            self._safe_addstr(mid_r - 5 + i, self._center_col(line), line,
+            self._safe_addstr(current_row + i, self._center_col(line), line,
                               self._attr(COLOR_SNAKE, bold=True))
-
+        
+        # Menu items start after logo + gap
+        menu_start = current_row + logo_lines + 2
         for i, item in enumerate(items):
             marker = MENU_MARKER if i == selected else MENU_SPACER
             text = f"{marker}{item}"
             attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == selected else self._attr(COLOR_TITLE)
-            self._safe_addstr(mid_r + 1 + i * 2, self._center_col(text), text, attr)
+            self._safe_addstr(menu_start + i * 2, self._center_col(text), text, attr)
 
+        # High score display (without emoji)
         if high_score > 0:
-            hs = f"🏆 Best: {high_score}"
-            self._safe_addstr(mid_r + 2 + len(items) * 2,
-                              self._center_col(hs), hs, self._attr(COLOR_HUD))
+            hs = f"Best: {high_score}"
+            hs_row = menu_start + len(items) * 2 + 1
+            self._safe_addstr(hs_row, self._center_col(hs), hs, self._attr(COLOR_HUD))
 
+        # Hint at bottom
         self._safe_addstr(self.win_h - 1, self._center_col(MENU_HINT), MENU_HINT,
                           self._attr(COLOR_BORDER))
         self.refresh()
@@ -248,20 +260,24 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        title = "🏆 HIGH SCORES 🏆"
-        self._safe_addstr(2, self._center_col(title), title,
+        
+        # Title
+        title = "=== HIGH SCORES ==="
+        self._safe_addstr(3, self._center_col(title), title,
                           self._attr(COLOR_HUD, bold=True))
+        
         if not entries:
-            msg = "No scores yet — go play!"
-            self._safe_addstr(5, self._center_col(msg), msg, self._attr(COLOR_TITLE))
+            msg = "No scores yet - go play!"
+            self._safe_addstr(6, self._center_col(msg), msg, self._attr(COLOR_TITLE))
         else:
             header = f" {'#':>2}  {'INITIALS':<8} {'SCORE':>6}"
-            self._safe_addstr(4, self._center_col(header), header,
+            self._safe_addstr(5, self._center_col(header), header,
                               self._attr(COLOR_TITLE, bold=True))
             for i, e in enumerate(entries[:10]):
                 line = f" {i+1:>2}. {e.initials:<8} {e.score:>6}"
                 attr = self._attr(COLOR_SUCCESS, bold=True) if i == 0 else self._attr(COLOR_TITLE)
-                self._safe_addstr(5 + i, self._center_col(line), line, attr)
+                self._safe_addstr(6 + i, self._center_col(line), line, attr)
+        
         self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT), RETURN_HINT,
                           self._attr(COLOR_BORDER))
         self.refresh()
@@ -270,8 +286,8 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        title = "📖 HELP 📖"
-        self._safe_addstr(2, self._center_col(title), title,
+        title = "=== HELP ==="
+        self._safe_addstr(3, self._center_col(title), title,
                           self._attr(COLOR_HUD, bold=True))
         start = 5
         for i, line in enumerate(HELP_TEXT):
