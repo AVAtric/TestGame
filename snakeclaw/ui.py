@@ -11,7 +11,7 @@ from .constants import (
     DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHAR, GAME_HINTS,
     GAME_SUBTITLE, GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
     MENU_HINT, MENU_MARKER, MENU_SPACER, RETURN_HINT,
-    SNAKE_BODY, SNAKE_HEAD, SNAKE_HEADS
+    SNAKE_BODY, SNAKE_HEAD, SNAKE_SEGMENTS
 )
 from .model import Action, Direction
 
@@ -183,19 +183,37 @@ class CursesUI:
     def draw_snake(self, body: List[Tuple[int, int]], direction: Optional[Direction] = None) -> None:
         if not self.stdscr or not body:
             return
-        # head - use 2 columns per cell (multiply col by 2)
-        # Use direction-specific head character if direction is provided
+        
+        attr_segment = self._attr(COLOR_SNAKE, bold=True)
+        
+        # Draw head with current direction
         if direction:
-            head_char = SNAKE_HEADS.get(direction.name, SNAKE_HEAD)
+            head_char = SNAKE_SEGMENTS.get(direction.name, SNAKE_HEAD)
         else:
             head_char = SNAKE_HEAD
-        attr_head = self._attr(COLOR_SNAKE, bold=True)
-        self._safe_addstr(body[0][0] + 1, body[0][1] * 2 + 1,
-                          head_char, attr_head)
-        # body
-        attr_body = self._attr(COLOR_SNAKE)
-        for part in body[1:]:
-            self._safe_addstr(part[0] + 1, part[1] * 2 + 1, SNAKE_BODY, attr_body)
+        self._safe_addstr(body[0][0] + 1, body[0][1] * 2 + 1, head_char, attr_segment)
+        
+        # Draw body segments - each shows direction to the next segment (toward head)
+        for i in range(1, len(body)):
+            current = body[i]
+            next_segment = body[i - 1]  # segment in front (toward head)
+            
+            # Calculate direction from current to next
+            row_diff = next_segment[0] - current[0]
+            col_diff = next_segment[1] - current[1]
+            
+            if row_diff < 0:
+                segment_char = SNAKE_SEGMENTS['UP']
+            elif row_diff > 0:
+                segment_char = SNAKE_SEGMENTS['DOWN']
+            elif col_diff < 0:
+                segment_char = SNAKE_SEGMENTS['LEFT']
+            elif col_diff > 0:
+                segment_char = SNAKE_SEGMENTS['RIGHT']
+            else:
+                segment_char = SNAKE_BODY  # fallback
+            
+            self._safe_addstr(current[0] + 1, current[1] * 2 + 1, segment_char, attr_segment)
 
     def draw_food(self, pos: Tuple[int, int]) -> None:
         if not self.stdscr:
