@@ -9,7 +9,7 @@ from .constants import (
     COLOR_BORDER, COLOR_FOOD, COLOR_HIGHLIGHT, COLOR_HUD,
     COLOR_SNAKE, COLOR_SUCCESS, COLOR_TITLE, COLOR_WARNING,
     DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHAR, GAME_HINTS,
-    GAME_SUBTITLE, GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
+    GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
     MENU_HINT, MENU_MARKER, MENU_SPACER, RETURN_HINT,
     SNAKE_SEGMENT
 )
@@ -227,9 +227,6 @@ class CursesUI:
         for i, line in enumerate(GAME_TITLE):
             self._safe_addstr(mid_r - 5 + i, self._center_col(line), line,
                               self._attr(COLOR_SNAKE, bold=True))
-
-        self._safe_addstr(mid_r - 1, self._center_col(GAME_SUBTITLE), GAME_SUBTITLE,
-                          self._attr(COLOR_TITLE))
 
         for i, item in enumerate(items):
             marker = MENU_MARKER if i == selected else MENU_SPACER

@@ -34,12 +34,12 @@ INITIALS_LENGTH = 3
 # Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
 
 # Snake - using 2-char ASCII blocks for reliable rendering
-SNAKE_SEGMENT = '██'  # Solid block (2 chars)
-SNAKE_HEAD = '██'     # Same as body for consistency
-SNAKE_BODY = '██'     # fallback
+SNAKE_SEGMENT = '██'    # Solid block (2 chars)
+SNAKE_HEAD =    '██'    # Same as body for consistency
+SNAKE_BODY =    '██'    # fallback
 
 # Food characters - using 2-char combinations for reliable rendering
-FOOD_CHARS = ['()','[]','{}','<>','##','**','@@']
+FOOD_CHARS = ['()','[]','{}','##','@@']
 FOOD_CHAR = '()'  # fallback if list is empty
 
 # Menu characters
@@ -62,12 +62,14 @@ COLOR_WARNING = 8
 # UI Messages
 # ---------------------------------------------------------------------------
 GAME_TITLE = [
-    "  ╔═╗╔╗╔╔═╗╦╔═╔═╗  ",
-    "  ╚═╗║║║╠═╣╠╩╗║╣   ",
-    "  ╚═╝╝╚╝╩ ╩╩ ╩╚═╝  ",
+"  ╔═╗╔╗╔╔═╗╦╔═╔═╗",
+"  ╚═╗║║║╠═╣╠╩╗║╣ ",
+"  ╚═╝╝╚╝╩ ╩╩ ╩╚═╝",
+"  ╔═╗╦  ╔═╗╦ ╦",
+"  ║  ║  ╠═╣║ ║",
+"  ╚═╝╩═╝╩ ╩╚═╝",
+"  T E R M I N A L",
 ]
-
-GAME_SUBTITLE = "~ Terminal Snake ~"
 
 # Menu items
 MENU_ITEMS = ["Start Game", "High Scores", "Help", "Quit"]
