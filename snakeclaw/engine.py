@@ -8,6 +8,11 @@ import time
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
+from .constants import (
+    DEFAULT_HEIGHT, DEFAULT_WIDTH, INITIAL_SNAKE_LENGTH,
+    INITIALS_LENGTH, MAX_HIGH_SCORE_ENTRIES, MENU_ITEMS,
+    POINTS_PER_LEVEL, SPEED_LEVELS
+)
 from .model import Action, Direction, Food, GameState, Snake
 
 
@@ -38,7 +43,8 @@ class HighScoreManager:
     DEFAULT_PATH = os.path.join(
         os.path.dirname(__file__), "data", "highscores.json")
 
-    def __init__(self, path: Optional[str] = None, max_entries: int = 10):
+    def __init__(self, path: Optional[str] = None, 
+                 max_entries: int = MAX_HIGH_SCORE_ENTRIES):
         self.path = path or self.DEFAULT_PATH
         self.max_entries = max_entries
         self._scores: List[HighScoreEntry] = []
@@ -91,22 +97,10 @@ class HighScoreManager:
 # Game engine (pure logic, no I/O)
 # ---------------------------------------------------------------------------
 
-# Speed curve: level → tick interval in seconds
-SPEED_LEVELS = {
-    1: 0.18,
-    2: 0.15,
-    3: 0.13,
-    4: 0.11,
-    5: 0.09,
-    6: 0.07,
-}
-POINTS_PER_LEVEL = 5  # advance level every N points
-
-
 class GameEngine:
     """Core game logic with no terminal dependency."""
 
-    def __init__(self, width: int = 48, height: int = 30,
+    def __init__(self, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT,
                  highscore_path: Optional[str] = None):
         self.width = width
         self.height = height
@@ -118,11 +112,11 @@ class GameEngine:
         self.high_scores = HighScoreManager(path=highscore_path)
 
         # Menu state
-        self.menu_items = ["Start Game", "High Scores", "Help", "Quit"]
+        self.menu_items = MENU_ITEMS
         self.menu_index: int = 0
 
         # Initials entry state
-        self.current_initials: List[str] = ['A', 'A', 'A']
+        self.current_initials: List[str] = ['A'] * INITIALS_LENGTH
         self.initials_cursor: int = 0
 
     # -- helpers -------------------------------------------------------------
@@ -139,7 +133,7 @@ class GameEngine:
 
     def new_game(self) -> None:
         self.snake = Snake((self.height // 2, self.width // 4),
-                           length=3, direction=Direction.RIGHT)
+                           length=INITIAL_SNAKE_LENGTH, direction=Direction.RIGHT)
         self.food = Food(self.width, self.height)
         # Ensure food not on snake
         self.food.place(snake_body=self.snake.get_body())
@@ -154,6 +148,10 @@ class GameEngine:
         if inp is None:
             return
 
+        # Handle common actions first
+        if self._handle_common_input(inp):
+            return
+
         if self.state == GameState.MENU:
             self._handle_menu_input(inp)
         elif self.state == GameState.PLAYING:
@@ -166,6 +164,20 @@ class GameEngine:
             self._handle_initials_input(inp)
         elif self.state in (GameState.HIGH_SCORES, GameState.HELP):
             self._handle_overlay_input(inp)
+
+    def _handle_common_input(self, inp: Union[Direction, Action]) -> bool:
+        """Handle actions common across multiple states. Returns True if handled."""
+        if inp == Action.QUIT:
+            self.state = GameState.QUIT
+            return True
+        
+        # MENU action returns to menu from most states
+        if inp == Action.MENU and self.state not in (GameState.MENU, GameState.ENTER_INITIALS):
+            self.state = GameState.MENU
+            self.menu_index = 0
+            return True
+        
+        return False
 
     def _handle_menu_input(self, inp: Union[Direction, Action]) -> None:
         if inp in (Direction.UP, Action.MENU_UP):
@@ -182,72 +194,37 @@ class GameEngine:
                 self.state = GameState.HELP
             elif selected == "Quit":
                 self.state = GameState.QUIT
-        elif inp == Action.QUIT:
-            self.state = GameState.QUIT
 
     def _handle_playing_input(self, inp: Union[Direction, Action]) -> None:
         if isinstance(inp, Direction):
             self.snake.set_direction(inp)
         elif inp == Action.PAUSE:
             self.state = GameState.PAUSED
-        elif inp == Action.MENU:
-            self.state = GameState.MENU
-            self.menu_index = 0
-        elif inp == Action.QUIT:
-            self.state = GameState.QUIT
 
     def _handle_paused_input(self, inp: Union[Direction, Action]) -> None:
         if inp == Action.PAUSE:
             self.state = GameState.PLAYING
-        elif inp == Action.MENU:
-            self.state = GameState.MENU
-            self.menu_index = 0
-        elif inp == Action.QUIT:
-            self.state = GameState.QUIT
         elif inp == Action.RESET:
             self.new_game()
 
     def _handle_game_over_input(self, inp: Union[Direction, Action]) -> None:
         if inp == Action.RESET:
             self.new_game()
-        elif inp == Action.MENU:
-            self.state = GameState.MENU
-            self.menu_index = 0
-        elif inp == Action.QUIT:
-            self.state = GameState.QUIT
 
     def _handle_overlay_input(self, inp: Union[Direction, Action]) -> None:
         # Any key returns to menu
         self.state = GameState.MENU
 
     def _handle_initials_input(self, inp: Union[Direction, Action]) -> None:
-        """Handle input for entering initials (3 characters)."""
+        """Handle input for entering initials."""
         if inp == Direction.UP:
-            # Increment current letter
-            current = self.current_initials[self.initials_cursor]
-            if current == 'Z':
-                self.current_initials[self.initials_cursor] = 'A'
-            elif current == ' ':
-                self.current_initials[self.initials_cursor] = 'A'
-            else:
-                self.current_initials[self.initials_cursor] = chr(ord(current) + 1)
+            self._cycle_initial(1)
         elif inp == Direction.DOWN:
-            # Decrement current letter
-            current = self.current_initials[self.initials_cursor]
-            if current == 'A':
-                self.current_initials[self.initials_cursor] = ' '
-            elif current == ' ':
-                self.current_initials[self.initials_cursor] = 'Z'
-            else:
-                self.current_initials[self.initials_cursor] = chr(ord(current) - 1)
+            self._cycle_initial(-1)
         elif inp == Direction.RIGHT:
-            # Move to next position
-            if self.initials_cursor < 2:
-                self.initials_cursor += 1
+            self.initials_cursor = min(self.initials_cursor + 1, INITIALS_LENGTH - 1)
         elif inp == Direction.LEFT:
-            # Move to previous position
-            if self.initials_cursor > 0:
-                self.initials_cursor -= 1
+            self.initials_cursor = max(self.initials_cursor - 1, 0)
         elif inp == Action.SELECT:
             # Confirm and save
             initials = ''.join(self.current_initials)
@@ -261,6 +238,19 @@ class GameEngine:
         elif inp == Action.QUIT:
             self.state = GameState.QUIT
 
+    def _cycle_initial(self, delta: int) -> None:
+        """Cycle current initial character up or down."""
+        current = self.current_initials[self.initials_cursor]
+        if current == ' ':
+            new_char = 'A' if delta > 0 else 'Z'
+        elif current == 'A' and delta < 0:
+            new_char = ' '
+        elif current == 'Z' and delta > 0:
+            new_char = 'A'
+        else:
+            new_char = chr(ord(current) + delta)
+        self.current_initials[self.initials_cursor] = new_char
+
     # -- tick ----------------------------------------------------------------
 
     def tick(self) -> None:
@@ -273,7 +263,7 @@ class GameEngine:
             # Check if it's a high score
             if self.high_scores.is_high_score(self.score):
                 # Reset initials entry state
-                self.current_initials = ['A', 'A', 'A']
+                self.current_initials = ['A'] * INITIALS_LENGTH
                 self.initials_cursor = 0
                 self.state = GameState.ENTER_INITIALS
             else:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+from .constants import DEFAULT_HEIGHT, DEFAULT_WIDTH
 from .engine import GameEngine
 from .model import GameState
 from .ui import CursesUI
@@ -12,7 +13,7 @@ from .ui import CursesUI
 class SnakeGame:
     """Main game controller."""
 
-    def __init__(self, width: int = 48, height: int = 30):
+    def __init__(self, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
         self.width = width
         self.height = height
         self.engine = GameEngine(width, height)

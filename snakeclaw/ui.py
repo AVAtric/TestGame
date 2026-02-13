@@ -5,6 +5,14 @@ from __future__ import annotations
 import curses
 from typing import List, Optional, Tuple, Union
 
+from .constants import (
+    COLOR_BORDER, COLOR_FOOD, COLOR_HIGHLIGHT, COLOR_HUD,
+    COLOR_SNAKE, COLOR_SUCCESS, COLOR_TITLE, COLOR_WARNING,
+    DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHAR, GAME_HINTS,
+    GAME_SUBTITLE, GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
+    MENU_HINT, MENU_MARKER, MENU_SPACER, RETURN_HINT,
+    SNAKE_BODY, SNAKE_HEAD
+)
 from .model import Action, Direction
 
 
@@ -40,17 +48,10 @@ def map_key(key: int) -> Optional[Union[Direction, Action]]:
 # Curses renderer
 # ---------------------------------------------------------------------------
 
-# Box-drawing via curses ACS characters
-# Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
-_SNAKE_HEAD = '◆◆'
-_SNAKE_BODY = '██'
-_FOOD_CHAR = '●●'
-
-
 class CursesUI:
     """Terminal UI implementation using curses."""
 
-    def __init__(self, width: int = 48, height: int = 30):
+    def __init__(self, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
         # play-area dimensions (inside the border) - logical grid
         self.play_w = width
         self.play_h = height
@@ -74,12 +75,14 @@ class CursesUI:
         if curses.has_colors():
             curses.start_color()
             curses.use_default_colors()
-            curses.init_pair(1, curses.COLOR_GREEN, -1)   # snake
-            curses.init_pair(2, curses.COLOR_RED, -1)     # food
-            curses.init_pair(3, curses.COLOR_YELLOW, -1)  # HUD
-            curses.init_pair(4, curses.COLOR_CYAN, -1)    # border
-            curses.init_pair(5, curses.COLOR_WHITE, -1)   # title
-            curses.init_pair(6, curses.COLOR_MAGENTA, -1) # highlight
+            curses.init_pair(COLOR_SNAKE, curses.COLOR_GREEN, -1)      # snake
+            curses.init_pair(COLOR_FOOD, curses.COLOR_RED, -1)         # food
+            curses.init_pair(COLOR_HUD, curses.COLOR_YELLOW, -1)       # HUD
+            curses.init_pair(COLOR_BORDER, curses.COLOR_CYAN, -1)      # border
+            curses.init_pair(COLOR_TITLE, curses.COLOR_WHITE, -1)      # title
+            curses.init_pair(COLOR_HIGHLIGHT, curses.COLOR_MAGENTA, -1) # highlight
+            curses.init_pair(COLOR_SUCCESS, curses.COLOR_GREEN, -1)    # success
+            curses.init_pair(COLOR_WARNING, curses.COLOR_RED, -1)      # warning
             self._has_colors = True
         self.stdscr.clear()
         self.stdscr.refresh()
@@ -160,7 +163,7 @@ class CursesUI:
         """Draw the play-area border (offset by 0,0; play area starts at 1,1)."""
         if not self.stdscr:
             return
-        attr = self._attr(4)
+        attr = self._attr(COLOR_BORDER)
         # top row
         self._safe_addch(0, 0, curses.ACS_ULCORNER, attr)
         for c in range(1, self.screen_w + 1):
@@ -181,19 +184,19 @@ class CursesUI:
         if not self.stdscr or not body:
             return
         # head - use 2 columns per cell (multiply col by 2)
-        attr_head = self._attr(1, bold=True)
+        attr_head = self._attr(COLOR_SNAKE, bold=True)
         self._safe_addstr(body[0][0] + 1, body[0][1] * 2 + 1,
-                          _SNAKE_HEAD, attr_head)
+                          SNAKE_HEAD, attr_head)
         # body
-        attr_body = self._attr(1)
+        attr_body = self._attr(COLOR_SNAKE)
         for part in body[1:]:
-            self._safe_addstr(part[0] + 1, part[1] * 2 + 1, _SNAKE_BODY, attr_body)
+            self._safe_addstr(part[0] + 1, part[1] * 2 + 1, SNAKE_BODY, attr_body)
 
     def draw_food(self, pos: Tuple[int, int]) -> None:
         if not self.stdscr:
             return
-        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, _FOOD_CHAR,
-                          self._attr(2, bold=True))
+        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, FOOD_CHAR,
+                          self._attr(COLOR_FOOD, bold=True))
 
     def draw_hud(self, score: int, high_score: int, level: int,
                  paused: bool = False) -> None:
@@ -201,7 +204,7 @@ class CursesUI:
         if not self.stdscr:
             return
         row = self.play_h + 2
-        attr = self._attr(3, bold=True)
+        attr = self._attr(COLOR_HUD, bold=True)
         parts = [
             f" Score: {score} ",
             f" Hi: {high_score} ",
@@ -210,8 +213,7 @@ class CursesUI:
         if paused:
             parts.append(" ⏸ PAUSED ")
         line = "│".join(parts)
-        hints = " P=pause  R=restart  Q=quit"
-        full = line + hints
+        full = line + GAME_HINTS
         self._safe_addstr(row, 0, full[:self.win_w], attr)
 
     # -- screens -------------------------------------------------------------
@@ -222,35 +224,28 @@ class CursesUI:
             return
         self.clear()
         mid_r = self.win_h // 2 - len(items)
+        
         # ASCII art title
-        title_lines = [
-            "  ╔═╗╔╗╔╔═╗╦╔═╔═╗  ",
-            "  ╚═╗║║║╠═╣╠╩╗║╣   ",
-            "  ╚═╝╝╚╝╩ ╩╩ ╩╚═╝  ",
-        ]
-        for i, line in enumerate(title_lines):
+        for i, line in enumerate(GAME_TITLE):
             self._safe_addstr(mid_r - 5 + i, self._center_col(line), line,
-                              self._attr(1, bold=True))
+                              self._attr(COLOR_SNAKE, bold=True))
 
-        subtitle = "~ Terminal Snake ~"
-        self._safe_addstr(mid_r - 1, self._center_col(subtitle), subtitle,
-                          self._attr(5))
+        self._safe_addstr(mid_r - 1, self._center_col(GAME_SUBTITLE), GAME_SUBTITLE,
+                          self._attr(COLOR_TITLE))
 
         for i, item in enumerate(items):
-            marker = " ▸ " if i == selected else "   "
+            marker = MENU_MARKER if i == selected else MENU_SPACER
             text = f"{marker}{item}"
-            attr = self._attr(6, bold=True) if i == selected else self._attr(5)
-            self._safe_addstr(mid_r + 1 + i * 2, self._center_col(text), text,
-                              attr)
+            attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == selected else self._attr(COLOR_TITLE)
+            self._safe_addstr(mid_r + 1 + i * 2, self._center_col(text), text, attr)
 
         if high_score > 0:
-            hs = f"Best: {high_score}"
+            hs = f"🏆 Best: {high_score}"
             self._safe_addstr(mid_r + 2 + len(items) * 2,
-                              self._center_col(hs), hs, self._attr(3))
+                              self._center_col(hs), hs, self._attr(COLOR_HUD))
 
-        hint = "↑/↓ navigate  Enter/Space select  Q quit"
-        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
-                          self._attr(4))
+        self._safe_addstr(self.win_h - 1, self._center_col(MENU_HINT), MENU_HINT,
+                          self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_high_scores(self, entries) -> None:
@@ -258,51 +253,37 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        title = "═══ HIGH SCORES ═══"
+        title = "🏆 HIGH SCORES 🏆"
         self._safe_addstr(2, self._center_col(title), title,
-                          self._attr(3, bold=True))
+                          self._attr(COLOR_HUD, bold=True))
         if not entries:
             msg = "No scores yet — go play!"
-            self._safe_addstr(5, self._center_col(msg), msg, self._attr(5))
+            self._safe_addstr(5, self._center_col(msg), msg, self._attr(COLOR_TITLE))
         else:
             header = f" {'#':>2}  {'INITIALS':<8} {'SCORE':>6}"
             self._safe_addstr(4, self._center_col(header), header,
-                              self._attr(5, bold=True))
+                              self._attr(COLOR_TITLE, bold=True))
             for i, e in enumerate(entries[:10]):
                 line = f" {i+1:>2}. {e.initials:<8} {e.score:>6}"
-                self._safe_addstr(5 + i, self._center_col(line), line,
-                                  self._attr(1) if i == 0 else self._attr(5))
-        hint = "Press any key to return"
-        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
-                          self._attr(4))
+                attr = self._attr(COLOR_SUCCESS, bold=True) if i == 0 else self._attr(COLOR_TITLE)
+                self._safe_addstr(5 + i, self._center_col(line), line, attr)
+        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT), RETURN_HINT,
+                          self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_help(self) -> None:
         if not self.stdscr:
             return
         self.clear()
-        title = "═══ HELP ═══"
+        title = "📖 HELP 📖"
         self._safe_addstr(2, self._center_col(title), title,
-                          self._attr(3, bold=True))
-        lines = [
-            "Arrow keys / WASD ─ move the snake",
-            "P ─ pause / resume",
-            "R ─ restart game",
-            "M / Esc ─ back to menu",
-            "Q ─ quit",
-            "",
-            "Eat ●● to grow and score points.",
-            "Avoid walls and your own tail!",
-            "Speed increases every 5 points.",
-            "Enter your initials for high scores!",
-        ]
+                          self._attr(COLOR_HUD, bold=True))
         start = 5
-        for i, line in enumerate(lines):
+        for i, line in enumerate(HELP_TEXT):
             self._safe_addstr(start + i, self._center_col(line), line,
-                              self._attr(5))
-        hint = "Press any key to return"
-        self._safe_addstr(self.win_h - 1, self._center_col(hint), hint,
-                          self._attr(4))
+                              self._attr(COLOR_TITLE))
+        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT), RETURN_HINT,
+                          self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_game_over(self, score: int, high_score: int) -> None:
@@ -313,14 +294,14 @@ class CursesUI:
         mid_r = self.win_h // 2 - 2
         lines = [
             "╔═══════════════════╗",
-            "║    GAME  OVER     ║",
+            "║   GAME  OVER ☠️   ║",
             "╚═══════════════════╝",
             f"  Score: {score}   Best: {high_score}",
             "",
             "R = restart   M = menu   Q = quit",
         ]
         for i, line in enumerate(lines):
-            attr = self._attr(2, bold=True) if i < 3 else self._attr(5)
+            attr = self._attr(COLOR_WARNING, bold=True) if i < 3 else self._attr(COLOR_TITLE)
             self._safe_addstr(mid_r + i, self._center_col(line), line, attr)
         self.refresh()
 
@@ -334,23 +315,23 @@ class CursesUI:
         mid_r = self.win_h // 2 - 4
         
         title = "╔═══════════════════════╗"
-        title2 = "║   NEW HIGH SCORE!    ║"
+        title2 = "║  🎉 NEW HIGH SCORE! 🎉 ║"
         title3 = "╚═══════════════════════╝"
         
         self._safe_addstr(mid_r, self._center_col(title), title,
-                          self._attr(3, bold=True))
+                          self._attr(COLOR_SUCCESS, bold=True))
         self._safe_addstr(mid_r + 1, self._center_col(title2), title2,
-                          self._attr(3, bold=True))
+                          self._attr(COLOR_SUCCESS, bold=True))
         self._safe_addstr(mid_r + 2, self._center_col(title3), title3,
-                          self._attr(3, bold=True))
+                          self._attr(COLOR_SUCCESS, bold=True))
         
         score_line = f"Score: {score}"
         self._safe_addstr(mid_r + 4, self._center_col(score_line), score_line,
-                          self._attr(5))
+                          self._attr(COLOR_TITLE))
         
         prompt = "Enter your initials:"
         self._safe_addstr(mid_r + 6, self._center_col(prompt), prompt,
-                          self._attr(5))
+                          self._attr(COLOR_TITLE))
         
         # Display initials with current cursor position highlighted
         initials_display = "   ".join(initials)
@@ -358,22 +339,16 @@ class CursesUI:
         
         for i, char in enumerate(initials):
             col = initials_col + i * 4
-            attr = self._attr(6, bold=True) if i == cursor else self._attr(1, bold=True)
+            attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == cursor else self._attr(COLOR_SNAKE, bold=True)
             self._safe_addstr(mid_r + 8, col, char, attr)
             if i == cursor:
                 # Add cursor indicator
-                self._safe_addstr(mid_r + 9, col, "▲", self._attr(6))
+                self._safe_addstr(mid_r + 9, col, "▲", self._attr(COLOR_HIGHLIGHT))
         
-        hints = [
-            "↑/↓ = change letter",
-            "←/→ = move cursor",
-            "Enter = confirm",
-            "Esc = skip",
-        ]
         start_hint = mid_r + 11
-        for i, hint in enumerate(hints):
+        for i, hint in enumerate(INITIALS_HINTS):
             self._safe_addstr(start_hint + i, self._center_col(hint), hint,
-                              self._attr(4))
+                              self._attr(COLOR_BORDER))
         
         self.refresh()
 
@@ -384,7 +359,7 @@ class CursesUI:
         mid_r = self.win_h // 2
         text = " ⏸  PAUSED — P to resume "
         self._safe_addstr(mid_r, self._center_col(text), text,
-                          self._attr(3, bold=True))
+                          self._attr(COLOR_HUD, bold=True))
         self.refresh()
 
     # -- full play-frame render ----------------------------------------------
