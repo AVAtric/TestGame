@@ -14,8 +14,8 @@ A polished terminal Snake game with modern features and clean architecture.
 - 💾 **Persistent storage** — Top 10 scores saved to JSON
 - 🧪 **Well-tested** — 115 unit tests with full coverage
 - 🐍 **Modern Python** — Type hints, clean separation of concerns
-- 🎲 **Random food variety** — Different emoji food spawns each time (🟢, 🟨, 🔴, ⬛, 💚, 🌟, 🟩)
-- 🟦 **Clean emoji rendering** — Consistent blue blocks for snake, colorful emojis for food
+- 🎲 **Random food variety** — Different ASCII symbols spawn each time: (), [], {}, <>, ##, **, @@
+- 🎨 **Clean ASCII rendering** — Solid blocks (██) for snake, varied symbols for food
 
 ## 🚀 Quick Start
 

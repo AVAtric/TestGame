@@ -33,14 +33,14 @@ INITIALS_LENGTH = 3
 # ---------------------------------------------------------------------------
 # Use 2 characters wide for better aspect ratio (terminal chars are ~2:1 tall:wide)
 
-# Snake - using block character for consistent rendering
-SNAKE_SEGMENT = '🟦'  # Blue square for all snake segments
-SNAKE_HEAD = '🟦'     # Same as body for consistency
-SNAKE_BODY = '🟦'     # fallback
+# Snake - using 2-char ASCII blocks for reliable rendering
+SNAKE_SEGMENT = '██'  # Solid block (2 chars)
+SNAKE_HEAD = '██'     # Same as body for consistency
+SNAKE_BODY = '██'     # fallback
 
-# Food characters - randomly selected each time food spawns
-FOOD_CHARS = ['🟢', '🟨', '🔴', '⬛', '💚', '🌟', '🟩']
-FOOD_CHAR = '🟩'  # fallback if list is empty
+# Food characters - using 2-char combinations for reliable rendering
+FOOD_CHARS = ['()','[]','{}','<>','##','**','@@']
+FOOD_CHAR = '()'  # fallback if list is empty
 
 # Menu characters
 MENU_MARKER = ' ▶ '
