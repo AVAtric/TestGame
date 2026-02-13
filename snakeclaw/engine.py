@@ -243,8 +243,6 @@ class GameEngine:
             self.high_scores.add(self.score, '---')
             self.state = GameState.MENU
             self.menu_index = 0
-        elif inp == Action.QUIT:
-            self.state = GameState.QUIT
 
     def _cycle_initial(self, delta: int) -> None:
         """Cycle current initial character up or down."""

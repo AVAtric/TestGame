@@ -54,9 +54,13 @@ class SnakeGame:
             # --- Playing / Paused (non-blocking input) ---
             if state == GameState.PLAYING:
                 now = _time.time()
-                if now - last_tick >= self.engine.tick_rate:
+                elapsed = now - last_tick
+                if elapsed >= self.engine.tick_rate:
                     self.engine.tick()
                     last_tick = now
+            else:
+                # Reset tick timer when not playing to avoid burst on resume
+                last_tick = _time.time()
 
             # --- Playing / Paused (render) ---
             if state in (GameState.PLAYING, GameState.PAUSED):

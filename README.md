@@ -1,163 +1,102 @@
-# 🐍 Snake Claw
+# 🐍 SnakeClaw
 
-A polished terminal Snake game with modern features and clean architecture.
+A polished terminal Snake game built with Python and curses.
 
-## ✨ Features
+```
+╔═╗╔╗╔╔═╗╦╔═╔═╗
+╚═╗║║║╠═╣╠╩╗║╣
+╚═╝╝╚╝╩ ╩╩ ╩╚═╝
+╔═╗╦  ╔═╗╦ ╦
+║  ║  ╠═╣║ ║
+╚═╝╩═╝╩ ╩╚═╝
+─ T E R M I N A L ─
+```
 
-- 🎮 **Classic gameplay** with smooth terminal rendering using curses
-- 🏆 **High score system** with personalized name entry
-- 📊 **Live HUD** showing score, high score, and level
-- ⚡ **Progressive difficulty** — 6 speed levels that increase with score
-- 🎨 **Color support** with proper aspect ratio (2:1 column correction)
-- ⌨️ **Intuitive controls** — Arrow keys or WASD
-- 📋 **Polished UI** — Menu, pause, help screens, high score table
-- 💾 **Persistent storage** — Top 10 scores saved to JSON
-- 🧪 **Well-tested** — 115 unit tests with full coverage
-- 🐍 **Modern Python** — Type hints, clean separation of concerns
-- 🎲 **Random food variety** — Different ASCII symbols spawn each time: (), [], {}, <>, ##, **, @@
-- 🎨 **Clean ASCII rendering** — Solid blocks (██) for snake, varied symbols for food
+## Features
 
-## 🚀 Quick Start
+- **Classic Snake gameplay** with smooth curses rendering
+- **Progressive difficulty** — 6 speed levels that ramp up as you score
+- **High score board** — Top 10 saved to disk with 3-letter initials
+- **Bonus food** — Golden ★★ appears randomly, worth 5 points, vanishes after 5 seconds
+- **Color terminal UI** — Border, snake, food, and HUD all color-coded
+- **Aspect ratio correction** — 2 terminal columns per game cell for square appearance
+- **Multiple food styles** — `()` `[]` `{}` `##` `@@` rotate randomly
 
-### Installation
+## Quick Start
 
 ```bash
+# Clone and set up
+cd TestGame
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-```
 
-### Run
-
-```bash
+# Play
 snakeclaw
 ```
 
-Or via module:
+Or run directly:
 
 ```bash
 python3 -m snakeclaw
 ```
 
-## 🎮 How to Play
-
-1. **Navigate the menu** with ↑/↓ and Enter
-2. **Move the snake** with arrow keys or WASD
-3. **Eat food** (random emojis) to grow and score points
-4. **Avoid walls and yourself** — collision ends the game
-5. **Enter your name** when you achieve a high score!
-6. **Press M** anytime to return to menu
-
-### Controls
+## Controls
 
 | Key | Action |
-|-----|--------|
-| **Arrow Keys / WASD** | Move snake |
-| **P** | Pause / Resume |
-| **M / Esc** | Return to menu |
-| **R** | Restart game (from game over) |
-| **Q** | Quit |
-| **Enter / Space** | Select menu item / Confirm |
+|---|---|
+| Arrow keys / WASD | Move snake |
+| P | Pause / resume |
+| R | Restart (from game over) |
+| M / Esc | Back to menu |
+| Q | Quit |
+| Enter / Space | Select menu item |
 
-### High Score Entry
+**High score entry:** ↑/↓ to change letter, ←/→ to move cursor, Enter to confirm, Esc to skip.
 
-When you beat a high score, you'll be prompted to enter your initials:
+## Game Mechanics
 
-- **↑/↓** — Change current letter (A-Z or space)
-- **←/→** — Move cursor between the 3 characters
-- **Enter** — Confirm and save
-- **Esc** — Skip and use default "---"
+| Setting | Value |
+|---|---|
+| Grid size | 48 × 30 (96 × 30 on screen) |
+| Starting length | 3 segments |
+| Speed range | 0.18s → 0.07s per tick |
+| Level up | Every 5 points |
+| Bonus food | ~8% chance after eating, worth 5 pts, lasts 5s |
+| High scores | Top 10, persisted as JSON |
 
-## 🏗️ Architecture
-
-### Clean Design
-
-```
-┌─────────────┐
-│   game.py   │  ← Thin controller (game loop)
-└──────┬──────┘
-       │
-   ┌───┴────┐
-   ▼        ▼
-┌────────┐ ┌────────┐
-│engine  │ │  ui    │  ← Separated concerns
-│(logic) │ │(render)│
-└────┬───┘ └────────┘
-     │
-     ▼
-┌─────────┐
-│ model   │  ← Pure data structures
-└─────────┘
-```
-
-**Key principles:**
-
-- **Zero I/O in game logic** — `engine.py` is terminal-independent
-- **Testability first** — All game logic tested without real terminal
-- **State machine** — Clean transitions: menu → playing → paused → game over → enter initials
-- **Aspect ratio fix** — 2 terminal columns per cell for square appearance
-
-### Project Structure
+## Architecture
 
 ```
-TestGame/
-├── snakeclaw/
-│   ├── model.py         # Data structures (Snake, Food, Direction, State)
-│   ├── engine.py        # Game logic & state machine
-│   ├── ui.py            # Curses rendering
-│   ├── game.py          # Main game loop controller
-│   └── data/
-│       └── highscores.json  # Persistent top 10 scores
-├── tests/               # 115 unit tests
-└── setup.py
+snakeclaw/
+├── model.py      # Pure data: Snake, Food, BonusFood, Direction, GameState
+├── engine.py     # Game logic & state machine (no I/O)
+├── ui.py         # Curses rendering & input mapping
+├── game.py       # Thin controller wiring engine ↔ UI
+├── constants.py  # All tunable values in one place
+└── data/
+    └── highscores.json
 ```
 
-## ⚙️ Game Mechanics
+**Design principles:**
+- Engine has zero terminal dependency — fully testable without curses
+- State machine drives all transitions: Menu → Playing → Paused → Game Over → Initials
+- All magic numbers live in `constants.py`
 
-- **Playfield:** 60×30 logical grid (120×30 on screen with 2-column cells)
-- **Starting snake:** 3 segments, moving right
-- **Speed progression:** 6 levels, from 0.18s to 0.07s per tick
-- **Level up:** Every 5 points scored
-- **High scores:** Top 10 saved with initials and timestamps
-
-## 🧪 Testing
-
-Run the full test suite:
+## Testing
 
 ```bash
+pip install -e ".[test]"
 python3 -m pytest tests/ -v
 ```
 
-**Coverage:**
-- Model logic (Snake movement, collision, food placement)
-- Engine (state transitions, scoring, high score management)
-- UI (key mapping, rendering safety)
-- Integration (game flow)
+115 tests covering model logic, engine state transitions, scoring, and UI key mapping.
 
-## 📋 Requirements
+## Requirements
 
-- **Python:** 3.12+ (uses modern type hints and features)
-- **Platform:** Linux, macOS, or Windows with curses-compatible terminal
-- **Dependencies:** Minimal (curses is built-in on Unix; windows-curses for Windows)
+- Python 3.12+
+- A terminal with curses support (built-in on Linux/macOS; `windows-curses` on Windows)
 
-## 🛠️ Development
+## License
 
-The codebase follows strict conventions:
-
-- ✅ Type hints throughout
-- ✅ PEP 8 style
-- ✅ Docstrings on public methods
-- ✅ Separation of concerns
-- ✅ No global state
-
-## 📝 License
-
-MIT License — Free to use, modify, and distribute.
-
-## 🤖 Credits
-
-Built by a coding agent with attention to architecture, testing, and user experience.
-
----
-
-**Enjoy the game! May your snake grow long and your reflexes stay sharp.** 🐍✨
+MIT
