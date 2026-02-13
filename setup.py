@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name="snakeclaw",
     version="0.1.0",
-    author="Your Name",
+    author="OpenClaw",
     description="A simple Snake game for the terminal",
     packages=find_packages(),
     entry_points={
