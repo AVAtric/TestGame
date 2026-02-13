@@ -94,6 +94,7 @@ class SnakeGame:
                 self.engine.high_score,
                 self.engine.level,
                 paused=(self.engine.state == GameState.PAUSED),
+                snake_direction=self.engine.snake.direction,
             )
 
 

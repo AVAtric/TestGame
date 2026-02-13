@@ -11,7 +11,7 @@ from .constants import (
     DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHAR, GAME_HINTS,
     GAME_SUBTITLE, GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
     MENU_HINT, MENU_MARKER, MENU_SPACER, RETURN_HINT,
-    SNAKE_BODY, SNAKE_HEAD
+    SNAKE_BODY, SNAKE_HEAD, SNAKE_HEADS
 )
 from .model import Action, Direction
 
@@ -180,13 +180,18 @@ class CursesUI:
         self._safe_addch(self.play_h + 1, self.screen_w + 1,
                          curses.ACS_LRCORNER, attr)
 
-    def draw_snake(self, body: List[Tuple[int, int]]) -> None:
+    def draw_snake(self, body: List[Tuple[int, int]], direction: Optional[Direction] = None) -> None:
         if not self.stdscr or not body:
             return
         # head - use 2 columns per cell (multiply col by 2)
+        # Use direction-specific head character if direction is provided
+        if direction:
+            head_char = SNAKE_HEADS.get(direction.name, SNAKE_HEAD)
+        else:
+            head_char = SNAKE_HEAD
         attr_head = self._attr(COLOR_SNAKE, bold=True)
         self._safe_addstr(body[0][0] + 1, body[0][1] * 2 + 1,
-                          SNAKE_HEAD, attr_head)
+                          head_char, attr_head)
         # body
         attr_body = self._attr(COLOR_SNAKE)
         for part in body[1:]:
@@ -367,11 +372,12 @@ class CursesUI:
     def render_frame(self, snake_body: List[Tuple[int, int]],
                      food_pos: Tuple[int, int], score: int,
                      high_score: int, level: int,
-                     paused: bool = False) -> None:
+                     paused: bool = False, 
+                     snake_direction: Optional[Direction] = None) -> None:
         """Render one complete game frame (border + objects + HUD)."""
         self.clear()
         self.draw_border()
-        self.draw_snake(snake_body)
+        self.draw_snake(snake_body, snake_direction)
         self.draw_food(food_pos)
         self.draw_hud(score, high_score, level, paused)
         if paused:
