@@ -230,29 +230,21 @@ class CursesUI:
         # Start position - center the entire menu content vertically
         start_row = max(1, (self.win_h - total_content_height) // 2)
         
-        # Find the widest element to center everything as a unified block
-        max_logo_width = max(len(line) for line in GAME_TITLE) if GAME_TITLE else 0
-        max_menu_width = max(len(f"{MENU_MARKER}{item}") for item in items) if items else 0
-        max_content_width = max(max_logo_width, max_menu_width)
-        
-        # Calculate left column for unified centered block
-        content_left_col = max(0, (self.win_w - max_content_width) // 2)
-        
-        # ASCII art title - left-align within the centered content block
+        # ASCII art title - center each line individually
         current_row = start_row
         for i, line in enumerate(GAME_TITLE):
-            self._safe_addstr(current_row + i, content_left_col, line,
+            self._safe_addstr(current_row + i, self._center_col(line), line,
                               self._attr(COLOR_SNAKE, bold=True))
         
-        # Menu items start after logo + gap - also left-align within content block
+        # Menu items start after logo + gap - center each individually
         menu_start = current_row + logo_lines + 2
         for i, item in enumerate(items):
             marker = MENU_MARKER if i == selected else MENU_SPACER
             text = f"{marker}{item}"
             attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == selected else self._attr(COLOR_TITLE)
-            self._safe_addstr(menu_start + i * 2, content_left_col, text, attr)
+            self._safe_addstr(menu_start + i * 2, self._center_col(text), text, attr)
 
-        # High score display - centered independently below menu
+        # High score display - centered
         if high_score > 0:
             hs = f"Best: {high_score}"
             hs_row = menu_start + len(items) * 2 + 1
