@@ -23,5 +23,8 @@ setup(
         "Programming Language :: Python :: 3.13",
         "Topic :: Games/Entertainment :: Arcade",
         "Topic :: Software Development :: Libraries :: Python Modules",
-    ], install_requires=['pytest']
+    ],
+    extras_require={
+        "test": ["pytest"],
+    }
 )

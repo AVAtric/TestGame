@@ -146,8 +146,10 @@ class CursesUI:
         except curses.error:
             pass
 
-    def _center_col(self, text: str) -> int:
-        return max(0, self.win_w // 2 - len(text) // 2)
+    def _center_col(self, text: str, width: int | None = None) -> int:
+        """Center text in the window. If width is given, use it instead of len(text)."""
+        w = width if width is not None else len(text)
+        return max(0, self.win_w // 2 - w // 2)
 
     # -- drawing primitives --------------------------------------------------
 
@@ -221,38 +223,62 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        
-        # Calculate total content height
+
+        # Calculate widths for the menu box
+        max_item_len = max(len(MENU_MARKER + item) for item in items)
+        box_inner = max_item_len + 2  # padding inside box
+        box_w = box_inner + 2  # +2 for borders
+
+        # Calculate total content height for vertical centering
         logo_lines = len(GAME_TITLE)
-        menu_spacing = len(items) * 2  # 2 rows per item
-        total_content_height = logo_lines + 2 + menu_spacing + 2  # +2 for gaps, +2 for high score area
-        
-        # Start position - center the entire menu content vertically
-        start_row = max(1, (self.win_h - total_content_height) // 2)
-        
-        # ASCII art title - center each line individually
-        current_row = start_row
+        # box: top border + items (1 row each) + bottom border
+        box_h = len(items) + 2
+        total_h = logo_lines + 2 + box_h + 2  # +gaps
+        start_row = max(1, (self.win_h - total_h) // 2)
+
+        # ASCII art title - center each line
         for i, line in enumerate(GAME_TITLE):
-            self._safe_addstr(current_row + i, self._center_col(line), line,
+            self._safe_addstr(start_row + i, self._center_col(line), line,
                               self._attr(COLOR_SNAKE, bold=True))
-        
-        # Menu items start after logo + gap - center each individually
-        menu_start = current_row + logo_lines + 2
+
+        # Menu box
+        menu_start = start_row + logo_lines + 2
+        box_col = self._center_col("x" * box_w)
+
+        # Top border
+        top = "╔" + "═" * box_inner + "╗"
+        self._safe_addstr(menu_start, box_col, top, self._attr(COLOR_BORDER))
+
+        # Items
         for i, item in enumerate(items):
             marker = MENU_MARKER if i == selected else MENU_SPACER
-            text = f"{marker}{item}"
-            attr = self._attr(COLOR_HIGHLIGHT, bold=True) if i == selected else self._attr(COLOR_TITLE)
-            self._safe_addstr(menu_start + i * 2, self._center_col(text), text, attr)
+            label = f"{marker}{item}"
+            padded = label.ljust(box_inner)
+            row = menu_start + 1 + i
+            if i == selected:
+                attr = self._attr(COLOR_HIGHLIGHT, bold=True)
+            else:
+                attr = self._attr(COLOR_TITLE)
+            self._safe_addstr(row, box_col, "║", self._attr(COLOR_BORDER))
+            self._safe_addstr(row, box_col + 1, padded, attr)
+            self._safe_addstr(row, box_col + 1 + box_inner, "║",
+                              self._attr(COLOR_BORDER))
 
-        # High score display - centered
-        if high_score > 0:
-            hs = f"Best: {high_score}"
-            hs_row = menu_start + len(items) * 2 + 1
-            self._safe_addstr(hs_row, self._center_col(hs), hs, self._attr(COLOR_HUD))
-
-        # Hint at bottom - centered
-        self._safe_addstr(self.win_h - 1, self._center_col(MENU_HINT), MENU_HINT,
+        # Bottom border
+        bot = "╚" + "═" * box_inner + "╝"
+        self._safe_addstr(menu_start + 1 + len(items), box_col, bot,
                           self._attr(COLOR_BORDER))
+
+        # High score below box
+        if high_score > 0:
+            hs = f"★ Best: {high_score} ★"
+            hs_row = menu_start + box_h + 1
+            self._safe_addstr(hs_row, self._center_col(hs), hs,
+                              self._attr(COLOR_HUD, bold=True))
+
+        # Hint at bottom
+        self._safe_addstr(self.win_h - 1, self._center_col(MENU_HINT),
+                          MENU_HINT, self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_high_scores(self, entries) -> None:
@@ -260,41 +286,63 @@ class CursesUI:
         if not self.stdscr:
             return
         self.clear()
-        
-        # Title
-        title = "=== HIGH SCORES ==="
-        self._safe_addstr(3, self._center_col(title), title,
+
+        title = "╔══════════════════════╗"
+        title2 = "║    ★ HIGH SCORES ★   ║"
+        title3 = "╚══════════════════════╝"
+        start_row = 2
+        self._safe_addstr(start_row, self._center_col(title), title,
                           self._attr(COLOR_HUD, bold=True))
-        
+        self._safe_addstr(start_row + 1, self._center_col(title2), title2,
+                          self._attr(COLOR_HUD, bold=True))
+        self._safe_addstr(start_row + 2, self._center_col(title3), title3,
+                          self._attr(COLOR_HUD, bold=True))
+
         if not entries:
-            msg = "No scores yet - go play!"
-            self._safe_addstr(6, self._center_col(msg), msg, self._attr(COLOR_TITLE))
+            msg = "No scores yet — go play!"
+            self._safe_addstr(start_row + 5, self._center_col(msg), msg,
+                              self._attr(COLOR_TITLE))
         else:
-            header = f" {'#':>2}  {'INITIALS':<8} {'SCORE':>6}"
-            self._safe_addstr(5, self._center_col(header), header,
-                              self._attr(COLOR_TITLE, bold=True))
+            header = f" {'#':>2}  {'NAME':<5} {'SCORE':>6}"
+            sep = "─" * len(header)
+            self._safe_addstr(start_row + 4, self._center_col(header), header,
+                              self._attr(COLOR_BORDER, bold=True))
+            self._safe_addstr(start_row + 5, self._center_col(sep), sep,
+                              self._attr(COLOR_BORDER))
             for i, e in enumerate(entries[:10]):
-                line = f" {i+1:>2}. {e.initials:<8} {e.score:>6}"
-                attr = self._attr(COLOR_SUCCESS, bold=True) if i == 0 else self._attr(COLOR_TITLE)
-                self._safe_addstr(6 + i, self._center_col(line), line, attr)
-        
-        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT), RETURN_HINT,
-                          self._attr(COLOR_BORDER))
+                medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "  "
+                line = f"{medal}{i+1:>2}. {e.initials:<5} {e.score:>6}"
+                if i == 0:
+                    attr = self._attr(COLOR_SUCCESS, bold=True)
+                elif i < 3:
+                    attr = self._attr(COLOR_HUD, bold=True)
+                else:
+                    attr = self._attr(COLOR_TITLE)
+                self._safe_addstr(start_row + 6 + i, self._center_col(line), line, attr)
+
+        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT),
+                          RETURN_HINT, self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_help(self) -> None:
         if not self.stdscr:
             return
         self.clear()
-        title = "=== HELP ==="
-        self._safe_addstr(3, self._center_col(title), title,
+        title = "╔═══════════════════╗"
+        title2 = "║    ? CONTROLS ?   ║"
+        title3 = "╚═══════════════════╝"
+        self._safe_addstr(2, self._center_col(title), title,
                           self._attr(COLOR_HUD, bold=True))
-        start = 5
+        self._safe_addstr(3, self._center_col(title2), title2,
+                          self._attr(COLOR_HUD, bold=True))
+        self._safe_addstr(4, self._center_col(title3), title3,
+                          self._attr(COLOR_HUD, bold=True))
+        start = 6
         for i, line in enumerate(HELP_TEXT):
-            self._safe_addstr(start + i, self._center_col(line), line,
-                              self._attr(COLOR_TITLE))
-        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT), RETURN_HINT,
-                          self._attr(COLOR_BORDER))
+            attr = self._attr(COLOR_SNAKE) if line.startswith(("Arrow", "P ", "R ", "M ", "Q ")) else self._attr(COLOR_TITLE)
+            self._safe_addstr(start + i, self._center_col(line), line, attr)
+        self._safe_addstr(self.win_h - 1, self._center_col(RETURN_HINT),
+                          RETURN_HINT, self._attr(COLOR_BORDER))
         self.refresh()
 
     def show_game_over(self, score: int, high_score: int) -> None:
