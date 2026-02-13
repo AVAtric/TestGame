@@ -1,7 +1,7 @@
 # 🐍 SnakeClaw
 
 A polished terminal Snake game built with Python and curses.
-
+<div align="center">
 <pre>
     ╔═╗╔╗╔╔═╗╦╔═╔═╗
     ╚═╗║║║╠═╣╠╩╗║╣
@@ -11,7 +11,7 @@ A polished terminal Snake game built with Python and curses.
      ╚═╝╩═╝╩ ╩╚═╝
   ─ T E R M I N A L ─
 </pre>
-
+</div>
 
 
 ## Features
