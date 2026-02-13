@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import time
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from .constants import (
-    DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHARS, INITIAL_SNAKE_LENGTH,
-    INITIALS_LENGTH, MAX_HIGH_SCORE_ENTRIES, MENU_ITEMS,
-    POINTS_PER_LEVEL, SPEED_LEVELS
+    BONUS_FOOD_CHANCE, BONUS_FOOD_CHAR, BONUS_FOOD_DURATION,
+    BONUS_FOOD_POINTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHARS,
+    INITIAL_SNAKE_LENGTH, INITIALS_LENGTH, MAX_HIGH_SCORE_ENTRIES,
+    MENU_ITEMS, POINTS_PER_LEVEL, SPEED_LEVELS
 )
-from .model import Action, Direction, Food, GameState, Snake
+from .model import Action, BonusFood, Direction, Food, GameState, Snake
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +117,9 @@ class GameEngine:
         self.menu_items = MENU_ITEMS
         self.menu_index: int = 0
 
+        # Bonus food
+        self.bonus: Optional[BonusFood] = None
+
         # Initials entry state
         self.current_initials: List[str] = ['A'] * INITIALS_LENGTH
         self.initials_cursor: int = 0
@@ -137,6 +142,9 @@ class GameEngine:
         self.food = Food(self.width, self.height, food_chars=FOOD_CHARS)
         # Ensure food not on snake
         self.food.place(snake_body=self.snake.get_body())
+        self.bonus = BonusFood(self.width, self.height,
+                               char=BONUS_FOOD_CHAR,
+                               duration=BONUS_FOOD_DURATION)
         self.score = 0
         self.level = 1
         self.state = GameState.PLAYING
@@ -258,6 +266,10 @@ class GameEngine:
         if self.state != GameState.PLAYING or self.snake is None:
             return
 
+        # Expire bonus food if timed out
+        if self.bonus and self.bonus.is_expired():
+            self.bonus.despawn()
+
         # Collision check before move
         if self.snake.check_next_move(self.width, self.height):
             # Check if it's a high score
@@ -277,12 +289,27 @@ class GameEngine:
         next_head = (head[0] + self.snake.direction.value[0],
                      head[1] + self.snake.direction.value[1])
 
+        ate_normal = False
         if self.food.check_eaten(next_head):
             self.score += 1
             self.snake.grow_snake()
             self.food.place(snake_body=self.snake.get_body())
-            # Level up
+            self.level = min(len(SPEED_LEVELS),
+                             1 + self.score // POINTS_PER_LEVEL)
+            ate_normal = True
+
+        # Check bonus food
+        if self.bonus and self.bonus.check_eaten(next_head):
+            self.score += BONUS_FOOD_POINTS
+            self.snake.grow_snake()
+            self.bonus.despawn()
             self.level = min(len(SPEED_LEVELS),
                              1 + self.score // POINTS_PER_LEVEL)
 
         self.snake.move()
+
+        # Random chance to spawn bonus after eating normal food
+        if ate_normal and self.bonus and not self.bonus.active:
+            if random.random() < BONUS_FOOD_CHANCE:
+                self.bonus.spawn(self.snake.get_body(),
+                                 self.food.get_position())

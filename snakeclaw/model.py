@@ -1,6 +1,7 @@
 """Game models and logic for Snake game."""
 
 import random
+import time
 from enum import Enum
 from typing import List, Tuple, Optional
 
@@ -160,3 +161,42 @@ class Food:
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
         return self.get_position() == snake_head
+
+
+class BonusFood:
+    """Rare golden bonus food that appears temporarily for extra points."""
+
+    def __init__(self, width: int, height: int, char: str = '★★',
+                 duration: float = 5.0):
+        self.width = width
+        self.height = height
+        self.char = char
+        self.duration = duration
+        self.position: Optional[Tuple[int, int]] = None
+        self.spawn_time: float = 0.0
+
+    @property
+    def active(self) -> bool:
+        return self.position is not None
+
+    def spawn(self, snake_body: List[Tuple[int, int]],
+              food_pos: Tuple[int, int]) -> None:
+        """Place bonus food avoiding snake and normal food."""
+        for _ in range(100):
+            p = (random.randint(0, self.height - 1),
+                 random.randint(0, self.width - 1))
+            if p not in snake_body and p != food_pos:
+                self.position = p
+                self.spawn_time = time.time()
+                return
+
+    def despawn(self) -> None:
+        self.position = None
+
+    def is_expired(self) -> bool:
+        if not self.active:
+            return False
+        return time.time() - self.spawn_time >= self.duration
+
+    def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
+        return self.active and self.position == snake_head

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import time
+import time as _time
 
 from .constants import DEFAULT_HEIGHT, DEFAULT_WIDTH
 from .engine import GameEngine
@@ -27,7 +27,7 @@ class SnakeGame:
             self.ui.stop()
 
     def _loop(self) -> None:
-        last_tick = time.time()
+        last_tick = _time.time()
 
         # Input handler for blocking states (menu overlays)
         blocking_inputs = {
@@ -53,7 +53,7 @@ class SnakeGame:
 
             # --- Playing / Paused (non-blocking input) ---
             if state == GameState.PLAYING:
-                now = time.time()
+                now = _time.time()
                 if now - last_tick >= self.engine.tick_rate:
                     self.engine.tick()
                     last_tick = now
@@ -87,6 +87,12 @@ class SnakeGame:
         """Render game frame for playing or paused state."""
         state = self.engine.state
         if state in (GameState.PLAYING, GameState.PAUSED):
+            bonus = self.engine.bonus
+            bonus_pos = bonus.position if bonus and bonus.active else None
+            bonus_char = bonus.char if bonus else '★★'
+            # Blink when < 2s remaining
+            bonus_blink = (bonus and bonus.active and
+                           _time.time() - bonus.spawn_time > bonus.duration - 2.0)
             self.ui.render_frame(
                 self.engine.snake.get_body(),
                 self.engine.food.get_position(),
@@ -96,6 +102,9 @@ class SnakeGame:
                 paused=(self.engine.state == GameState.PAUSED),
                 snake_direction=self.engine.snake.direction,
                 food_char=self.engine.food.get_char(),
+                bonus_pos=bonus_pos,
+                bonus_char=bonus_char,
+                bonus_blink=bonus_blink,
             )
 
 

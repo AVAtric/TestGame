@@ -6,8 +6,8 @@ import curses
 from typing import List, Optional, Tuple, Union
 
 from .constants import (
-    COLOR_BORDER, COLOR_FOOD, COLOR_HIGHLIGHT, COLOR_HUD,
-    COLOR_SNAKE, COLOR_SUCCESS, COLOR_TITLE, COLOR_WARNING,
+    BONUS_FOOD_CHAR, COLOR_BORDER, COLOR_FOOD, COLOR_HIGHLIGHT,
+    COLOR_HUD, COLOR_SNAKE, COLOR_SUCCESS, COLOR_TITLE, COLOR_WARNING,
     DEFAULT_HEIGHT, DEFAULT_WIDTH, FOOD_CHAR, GAME_HINTS,
     GAME_TITLE, HELP_TEXT, INITIALS_HINTS,
     MENU_HINT, MENU_MARKER, MENU_SPACER, RETURN_HINT,
@@ -198,23 +198,37 @@ class CursesUI:
         self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, char,
                           self._attr(COLOR_FOOD, bold=True))
 
+    def draw_bonus_food(self, pos: Optional[Tuple[int, int]],
+                        char: str = BONUS_FOOD_CHAR,
+                        blink: bool = False) -> None:
+        """Draw the bonus food with a blinking/bold golden effect."""
+        if not self.stdscr or pos is None:
+            return
+        attr = self._attr(COLOR_HUD, bold=True)
+        if blink:
+            attr |= curses.A_BLINK
+        self._safe_addstr(pos[0] + 1, pos[1] * 2 + 1, char, attr)
+
     def draw_hud(self, score: int, high_score: int, level: int,
                  paused: bool = False) -> None:
-        """Draw status bar below the play area."""
+        """Draw status bar below the play area, fitting within the border width."""
         if not self.stdscr:
             return
         row = self.play_h + 2
-        attr = self._attr(COLOR_HUD, bold=True)
-        parts = [
-            f" Score: {score} ",
-            f" Hi: {high_score} ",
-            f" Lvl: {level} ",
-        ]
+        w = self.win_w
+
+        # Top HUD line: stats bar
+        stats = f" Score: {score}  │  Hi: {high_score}  │  Lvl: {level} "
         if paused:
-            parts.append(" ⏸ PAUSED ")
-        line = "│".join(parts)
-        full = line + GAME_HINTS
-        self._safe_addstr(row, 0, full[:self.win_w], attr)
+            stats += " │  ⏸ PAUSED"
+        # Center the stats within the border width
+        stats_line = stats.center(w)
+        self._safe_addstr(row, 0, stats_line[:w], self._attr(COLOR_HUD, bold=True))
+
+        # Bottom HUD line: hints
+        hints = GAME_HINTS.strip()
+        hints_line = hints.center(w)
+        self._safe_addstr(row + 1, 0, hints_line[:w], self._attr(COLOR_BORDER))
 
     # -- screens -------------------------------------------------------------
 
@@ -428,12 +442,16 @@ class CursesUI:
                      high_score: int, level: int,
                      paused: bool = False, 
                      snake_direction: Optional[Direction] = None,
-                     food_char: str = FOOD_CHAR) -> None:
+                     food_char: str = FOOD_CHAR,
+                     bonus_pos: Optional[Tuple[int, int]] = None,
+                     bonus_char: str = BONUS_FOOD_CHAR,
+                     bonus_blink: bool = False) -> None:
         """Render one complete game frame (border + objects + HUD)."""
         self.clear()
         self.draw_border()
         self.draw_snake(snake_body, snake_direction)
         self.draw_food(food_pos, food_char)
+        self.draw_bonus_food(bonus_pos, bonus_char, bonus_blink)
         self.draw_hud(score, high_score, level, paused)
         if paused:
             self.show_paused()
