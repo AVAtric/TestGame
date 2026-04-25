@@ -20,7 +20,8 @@ A polished terminal Snake game built with Python and curses.
 - **Wall modes** — toggle between **Wrap** (default; pass through walls to the opposite side) and **Solid** (walls are deadly), right from the main menu
 - **Progressive difficulty** — 6 speed levels that ramp up as you score
 - **High score board** — Top 10 saved to disk with 3-letter initials
-- **Bonus food** — Golden ★★ appears randomly, worth 5 points, vanishes after 5 seconds
+- **Reachable food** — placement runs a BFS from the snake's head so food never spawns in a pocket the player can't enter
+- **Bonus food** — blinking `XX` appears randomly, worth 5 points, vanishes after 5 seconds
 - **Color terminal UI** — Border, snake, food, and HUD all color-coded
 - **Aspect ratio correction** — 2 terminal columns per game cell for square appearance
 - **Multiple food styles** — `()` `[]` `{}` `##` `@@` rotate randomly
@@ -66,7 +67,8 @@ python3 -m snakeclaw
 | Speed range | 0.18s → 0.07s per tick |
 | Level up | Every 5 points |
 | Wall mode | Wrap (default) or Solid — toggled from the menu |
-| Bonus food | ~8% chance after eating, worth 5 pts, lasts 5s |
+| Food placement | BFS-restricted to cells reachable from the snake's head |
+| Bonus food | ~8% chance after eating, worth 5 pts, lasts 5s, blinks while visible |
 | High scores | Top 10, persisted atomically as JSON |
 
 ## Architecture
@@ -94,7 +96,7 @@ pip install -e ".[test]"
 python3 -m pytest tests/ -v
 ```
 
-128 tests covering model logic, engine state transitions, high-score persistence, wall modes, and UI key mapping.
+140 tests covering model logic, engine state transitions, high-score persistence, wall modes, BFS reachability for food placement, and UI key mapping.
 
 ## Requirements
 

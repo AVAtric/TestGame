@@ -7,7 +7,7 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 from .constants import (
     BONUS_FOOD_CHANCE, BONUS_FOOD_CHAR, BONUS_FOOD_DURATION,
@@ -15,7 +15,8 @@ from .constants import (
     INITIAL_SNAKE_LENGTH, INITIALS_LENGTH, MAX_HIGH_SCORE_ENTRIES,
     POINTS_PER_LEVEL, SPEED_LEVELS
 )
-from .model import Action, BonusFood, Direction, Food, GameState, Snake, WallMode
+from .model import (Action, BonusFood, Direction, Food, GameState, Snake,
+                     WallMode, reachable_cells)
 
 
 # Menu actions, in display order. Labels are computed dynamically so the
@@ -182,13 +183,53 @@ class GameEngine:
         self.snake = Snake((self.height // 2, self.width // 4),
                            length=INITIAL_SNAKE_LENGTH, direction=Direction.RIGHT)
         self.food = Food(self.width, self.height, food_chars=FOOD_CHARS)
-        self.food.place(snake_body=self.snake.get_body())
         self.bonus = BonusFood(self.width, self.height,
                                char=BONUS_FOOD_CHAR,
                                duration=BONUS_FOOD_DURATION)
+        self._place_food_reachable()
         self.score = 0
         self.level = 1
         self.state = GameState.PLAYING
+
+    # -- food placement (reachability-aware) --------------------------------
+
+    def _reachable_from_head(self,
+                             extra_obstacles: Iterable[Tuple[int, int]] = ()
+                             ) -> List[Tuple[int, int]]:
+        """Cells the snake's head can reach right now via BFS, minus extras.
+
+        Used to ensure food/bonus only spawn where there's actually a path —
+        otherwise a coiled snake could trap food in a pocket it can never
+        enter, and the player would be stuck waiting for the bonus to time
+        out (or, for normal food, lose all progress to the wall).
+        """
+        wrap = self.wall_mode == WallMode.WRAP
+        head = self.snake.get_head()
+        body = self.snake.get_body()
+        cells = reachable_cells(body, head, self.width, self.height, wrap)
+        for extra in extra_obstacles:
+            cells.discard(extra)
+        return list(cells)
+
+    def _place_food_reachable(self) -> None:
+        """Place normal food on a reachable empty cell (fallback: any empty)."""
+        candidates = self._reachable_from_head()
+        if candidates:
+            self.food.place(pos=random.choice(candidates))
+        else:
+            # Pathological: head walled off entirely. Fall back to old behavior
+            # so the game can keep running rather than crash.
+            self.food.place(snake_body=self.snake.get_body())
+
+    def _spawn_bonus_reachable(self) -> None:
+        """Spawn bonus food at a reachable cell, avoiding the normal food."""
+        if self.bonus is None:
+            return
+        candidates = self._reachable_from_head(
+            extra_obstacles=(self.food.get_position(),))
+        if not candidates:
+            return  # nothing reachable; skip this bonus opportunity
+        self.bonus.spawn_at(random.choice(candidates))
 
     # -- input handling ------------------------------------------------------
 
@@ -319,26 +360,28 @@ class GameEngine:
                                                  wrap=wrap)
 
         ate_normal = self.food.check_eaten(next_head)
+        ate_bonus = self.bonus is not None and self.bonus.check_eaten(next_head)
+
         if ate_normal:
             self.score += 1
             self.snake.grow_snake()
-            self.food.place(snake_body=self.snake.get_body())
-
-        ate_bonus = self.bonus is not None and self.bonus.check_eaten(next_head)
         if ate_bonus:
             self.score += BONUS_FOOD_POINTS
             self.snake.grow_snake()
             self.bonus.despawn()
-
         if ate_normal or ate_bonus:
             self._recompute_level()
 
+        # Advance the snake before placing new food so reachability is
+        # computed from the post-move head position.
         self.snake.move(new_head=next_head)
+
+        if ate_normal:
+            self._place_food_reachable()
 
         if ate_normal and self.bonus and not self.bonus.active:
             if random.random() < BONUS_FOOD_CHANCE:
-                self.bonus.spawn(self.snake.get_body(),
-                                 self.food.get_position())
+                self._spawn_bonus_reachable()
 
     def _on_collision(self) -> None:
         """Handle the snake hitting a wall or itself.

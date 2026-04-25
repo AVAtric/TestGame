@@ -1,9 +1,26 @@
-.idea
-.venv
-build
-.pytest_cache
-tests/__pycache__
-snakeclaw/__pycache__
+# Editors / IDE
+.idea/
+.vscode/
+
+# Virtual environments
+.venv/
+venv/
+
+# Python build / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Test caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime data
 snakeclaw/data/highscores.json
 debug.log
-.claude
+
+# Claude Code workspace
+.claude/

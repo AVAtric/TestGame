@@ -360,6 +360,64 @@ class TestEngineOverlays:
         assert e.state == GameState.MENU
 
 
+class TestEngineFoodReachability:
+    """Food (and bonus food) must spawn on cells the snake can actually reach
+    from its current head — otherwise a coiled snake or solid-wall pocket can
+    trap food where the player can never get to it."""
+
+    def test_food_lands_on_reachable_cell(self, tmp_path):
+        # Solid walls + a body that splits the playfield. Force the engine's
+        # placement and confirm food never lands on the unreachable side.
+        e = GameEngine(width=10, height=6,
+                       highscore_path=str(tmp_path / "hs.json"),
+                       wall_mode=WallMode.SOLID)
+        e.new_game()
+        # Build a vertical wall of snake at column 5; head on the left.
+        e.snake.body = [(0, 0)] + [(r, 5) for r in range(6)]
+        for _ in range(50):
+            e._place_food_reachable()
+            food_r, food_c = e.food.get_position()
+            assert food_c < 5, f"food landed unreachable at {(food_r, food_c)}"
+
+    def test_food_falls_back_when_no_reachable_cells(self, tmp_path):
+        # If the head is fully walled in, _place_food_reachable should still
+        # place the food somewhere (fallback) rather than infinite-loop.
+        e = GameEngine(width=5, height=5,
+                       highscore_path=str(tmp_path / "hs.json"),
+                       wall_mode=WallMode.SOLID)
+        e.new_game()
+        # Head boxed in.
+        e.snake.body = [(2, 2), (2, 1), (2, 3), (1, 2), (3, 2)]
+        e._place_food_reachable()
+        # Position must at least be inside the grid.
+        r, c = e.food.get_position()
+        assert 0 <= r < 5 and 0 <= c < 5
+
+    def test_bonus_food_spawn_reachable(self, tmp_path):
+        e = GameEngine(width=10, height=6,
+                       highscore_path=str(tmp_path / "hs.json"),
+                       wall_mode=WallMode.SOLID)
+        e.new_game()
+        e.snake.body = [(0, 0)] + [(r, 5) for r in range(6)]
+        e.food.place(pos=(0, 1))  # left side, reachable
+        for _ in range(20):
+            e.bonus.despawn()
+            e._spawn_bonus_reachable()
+            if e.bonus.active:
+                _, c = e.bonus.position
+                assert c < 5
+
+    def test_bonus_skips_when_nothing_reachable(self, tmp_path):
+        e = GameEngine(width=5, height=5,
+                       highscore_path=str(tmp_path / "hs.json"),
+                       wall_mode=WallMode.SOLID)
+        e.new_game()
+        e.snake.body = [(2, 2), (2, 1), (2, 3), (1, 2), (3, 2)]
+        e.bonus.despawn()
+        e._spawn_bonus_reachable()
+        assert not e.bonus.active
+
+
 class TestEngineTickRate:
     def test_tick_rate_level_1(self):
         e = GameEngine()

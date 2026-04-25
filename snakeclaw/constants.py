@@ -42,8 +42,8 @@ SNAKE_BODY =    '██'    # fallback
 FOOD_CHARS = ['()','[]','{}','##','@@']
 FOOD_CHAR = '()'  # fallback if list is empty
 
-# Bonus food (rare golden pickup)
-BONUS_FOOD_CHAR = '★★'
+# Bonus food (rare pickup) — always-blinking double-X so it stands out
+BONUS_FOOD_CHAR = 'XX'
 BONUS_FOOD_POINTS = 5
 BONUS_FOOD_DURATION = 5.0       # seconds before it vanishes
 BONUS_FOOD_CHANCE = 0.08        # chance per normal food eaten to spawn bonus

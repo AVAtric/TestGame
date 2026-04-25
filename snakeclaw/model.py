@@ -2,8 +2,9 @@
 
 import random
 import time
+from collections import deque
 from enum import Enum
-from typing import List, Tuple, Optional
+from typing import Iterable, List, Set, Tuple, Optional
 
 
 class Direction(Enum):
@@ -198,16 +199,15 @@ class BonusFood:
     def active(self) -> bool:
         return self.position is not None
 
-    def spawn(self, snake_body: List[Tuple[int, int]],
-              food_pos: Tuple[int, int]) -> None:
-        """Place bonus food avoiding snake and normal food."""
-        for _ in range(100):
-            p = (random.randint(0, self.height - 1),
-                 random.randint(0, self.width - 1))
-            if p not in snake_body and p != food_pos:
-                self.position = p
-                self.spawn_time = time.time()
-                return
+    def spawn_at(self, pos: Tuple[int, int]) -> None:
+        """Place bonus food at an explicit position and start its timer.
+
+        Placement strategy (reachability, avoiding the snake / normal food)
+        lives in the engine; this method is the model-level primitive that
+        records *where* and *when* a spawn happened.
+        """
+        self.position = pos
+        self.spawn_time = time.time()
 
     def despawn(self) -> None:
         self.position = None
@@ -218,10 +218,47 @@ class BonusFood:
         return time.time() - self.spawn_time >= self.duration
 
     def is_blinking(self, threshold: float = 2.0) -> bool:
-        """True when fewer than `threshold` seconds remain — for blink rendering."""
-        if not self.active:
-            return False
-        return time.time() - self.spawn_time > self.duration - threshold
+        """True whenever the bonus is on screen — bonus food blinks the whole time
+        it's visible so it stands out against the regular food."""
+        return self.active
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
         return self.active and self.position == snake_head
+
+
+# ---------------------------------------------------------------------------
+# Reachability (BFS) — used by the engine to ensure food is always placeable
+# on a cell the snake can actually reach from its current head.
+# ---------------------------------------------------------------------------
+
+def reachable_cells(snake_body: Iterable[Tuple[int, int]],
+                    head: Tuple[int, int],
+                    width: int, height: int,
+                    wrap: bool) -> Set[Tuple[int, int]]:
+    """Cells reachable from `head` without crossing the snake's body.
+
+    Treats every body segment except the head as a wall. Honors `wrap` so
+    toroidal walls don't artificially partition the grid. Returns the set of
+    reachable empty cells (excludes the head itself).
+    """
+    obstacles = set(snake_body)
+    obstacles.discard(head)
+    visited: Set[Tuple[int, int]] = {head}
+    queue: deque = deque([head])
+    deltas = ((-1, 0), (1, 0), (0, -1), (0, 1))
+    while queue:
+        r, c = queue.popleft()
+        for dr, dc in deltas:
+            nr, nc = r + dr, c + dc
+            if wrap:
+                nr %= height
+                nc %= width
+            elif not (0 <= nr < height and 0 <= nc < width):
+                continue
+            cell = (nr, nc)
+            if cell in visited or cell in obstacles:
+                continue
+            visited.add(cell)
+            queue.append(cell)
+    visited.discard(head)
+    return visited

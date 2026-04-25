@@ -1,7 +1,8 @@
 """Unit tests for Snake game models."""
 
 import pytest
-from snakeclaw.model import Snake, Food, Direction, GameState, OPPOSITE, WallMode
+from snakeclaw.model import (BonusFood, Snake, Food, Direction, GameState,
+                             OPPOSITE, WallMode, reachable_cells)
 
 
 # ── Direction ──────────────────────────────────────────────────────────────
@@ -238,3 +239,67 @@ class TestFood:
     def test_dimensions_stored(self):
         f = Food(60, 30)
         assert f.width == 60 and f.height == 30
+
+
+# ── BonusFood blink-while-active ──────────────────────────────────────────
+
+class TestBonusFood:
+    def test_inactive_does_not_blink(self):
+        b = BonusFood(20, 20)
+        assert not b.active
+        assert not b.is_blinking()
+
+    def test_blinks_immediately_after_spawn(self):
+        # Bonus food now blinks the entire time it's on screen, not just at
+        # the end. Spawn it and ensure is_blinking() is True right away.
+        b = BonusFood(20, 20)
+        b.spawn_at((1, 1))
+        assert b.active
+        assert b.is_blinking()
+
+    def test_despawn_clears_position(self):
+        b = BonusFood(20, 20)
+        b.spawn_at((3, 3))
+        b.despawn()
+        assert not b.active
+        assert b.position is None
+
+
+# ── reachable_cells ───────────────────────────────────────────────────────
+
+class TestReachableCells:
+    def test_open_grid_reaches_everything(self):
+        cells = reachable_cells([(2, 2)], head=(2, 2),
+                                width=5, height=5, wrap=False)
+        assert len(cells) == 24  # 5x5 - head
+
+    def test_excludes_head(self):
+        cells = reachable_cells([(2, 2)], head=(2, 2),
+                                width=5, height=5, wrap=False)
+        assert (2, 2) not in cells
+
+    def test_body_blocks_partition(self):
+        # Vertical wall of body cells splits the 5x5 grid in two when walls
+        # are solid; head on the left can only reach the left side.
+        body = [(r, 2) for r in range(5)] + [(0, 0)]
+        cells = reachable_cells(body, head=(0, 0),
+                                width=5, height=5, wrap=False)
+        # left half (cols 0,1) minus head and (0,0 already head)
+        assert all(c < 2 for _, c in cells)
+        # No cell on the right side leaks through.
+        assert not any(c > 2 for _, c in cells)
+
+    def test_wrap_bypasses_partition(self):
+        # Same vertical wall, but wrap mode means the head can go around
+        # the torus and reach the right side.
+        body = [(r, 2) for r in range(5)] + [(0, 0)]
+        cells = reachable_cells(body, head=(0, 0),
+                                width=5, height=5, wrap=True)
+        assert any(c > 2 for _, c in cells)
+
+    def test_fully_walled_head_returns_empty(self):
+        # Head boxed in by body on all 4 sides.
+        body = [(0, 0), (0, 1), (1, 0), (2, 1), (1, 2)]
+        cells = reachable_cells(body, head=(1, 1),
+                                width=5, height=5, wrap=False)
+        assert cells == set()
