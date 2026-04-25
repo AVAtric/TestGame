@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="snakeclaw",
-    version="0.1.0",
+    version="1.0.0",
     author="OpenClaw",
     description="A simple Snake game for the terminal",
     packages=find_packages(),
@@ -21,10 +21,12 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Games/Entertainment :: Arcade",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     extras_require={
         "test": ["pytest"],
+        "build": ["pyinstaller>=6.0"],
     }
 )

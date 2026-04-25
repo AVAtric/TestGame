@@ -1,8 +1,26 @@
 """Unit tests for Snake game models."""
 
 import pytest
-from snakeclaw.model import (BonusFood, Snake, Food, Direction, GameState,
-                             OPPOSITE, WallMode, reachable_cells)
+from snakeclaw.model import (Direction, Effect, Fruit, FruitKind, GameState,
+                             OPPOSITE, PowerUp, ScorePopup, Snake, WallMode,
+                             bfs_distances, pick_kind, reachable_cells)
+
+
+# Lightweight fixtures-as-helpers — keep tests self-contained.
+APPLE = FruitKind(name="apple", char="()", points=1, color=2, weight=1.0)
+CHERRY = FruitKind(name="cherry", char="cc", points=2, color=3, weight=1.0)
+SPEED_UP = FruitKind(name="speed", char=">>", points=3, color=7, weight=1.0,
+                     effect=Effect.SPEED_UP, lifetime=4.0)
+SHRINKER = FruitKind(name="shrink", char="vv", points=4, color=6, weight=1.0,
+                     effect=Effect.SHRINK, lifetime=4.0)
+
+
+def _fruit(width=60, height=30, pos=None, kinds=(APPLE,)):
+    return Fruit(width, height, kinds=kinds, initial_position=pos)
+
+
+def _power(width=20, height=20, kinds=(SPEED_UP,)):
+    return PowerUp(width, height, kinds=kinds)
 
 
 # ── Direction ──────────────────────────────────────────────────────────────
@@ -204,65 +222,139 @@ class TestSnakeHelpers:
         assert (99, 99) not in s.body
 
 
-# ── Food ───────────────────────────────────────────────────────────────────
+# ── Fruit ──────────────────────────────────────────────────────────────────
 
-class TestFood:
+class TestFruit:
     def test_init_random_in_bounds(self):
-        f = Food(60, 30)
+        f = _fruit()
         r, c = f.get_position()
         assert 0 <= r < 30
         assert 0 <= c < 60
 
     def test_init_custom_position(self):
-        f = Food(60, 30, (15, 15))
+        f = _fruit(pos=(15, 15))
         assert f.get_position() == (15, 15)
 
     def test_place_explicit(self):
-        f = Food(60, 30)
+        f = _fruit()
         f.place(pos=(20, 20))
         assert f.get_position() == (20, 20)
 
     def test_place_avoids_snake(self):
         body = [(r, 10) for r in range(30)]  # full column
-        f = Food(60, 30)
+        f = _fruit()
         f.place(snake_body=body)
         assert f.get_position() not in body
 
     def test_check_eaten(self):
-        f = Food(60, 30, (15, 15))
+        f = _fruit(pos=(15, 15))
         assert f.check_eaten((15, 15))
 
     def test_check_not_eaten(self):
-        f = Food(60, 30, (15, 15))
+        f = _fruit(pos=(15, 15))
         assert not f.check_eaten((15, 16))
 
     def test_dimensions_stored(self):
-        f = Food(60, 30)
+        f = _fruit()
         assert f.width == 60 and f.height == 30
 
+    def test_kind_drives_points_and_char(self):
+        f = _fruit(kinds=(CHERRY,))
+        f.place(pos=(0, 0))
+        assert f.get_points() == 2
+        assert f.get_char() == "cc"
 
-# ── BonusFood blink-while-active ──────────────────────────────────────────
+    def test_weighted_pick_picks_only_kind_when_single(self):
+        # With one kind, every pick must be that kind regardless of weight.
+        for _ in range(20):
+            assert pick_kind((APPLE,)) is APPLE
 
-class TestBonusFood:
+    def test_requires_kinds(self):
+        with pytest.raises(ValueError):
+            Fruit(60, 30, kinds=())
+
+
+# ── PowerUp ────────────────────────────────────────────────────────────────
+
+class TestPowerUp:
     def test_inactive_does_not_blink(self):
-        b = BonusFood(20, 20)
+        b = _power()
         assert not b.active
         assert not b.is_blinking()
 
     def test_blinks_immediately_after_spawn(self):
-        # Bonus food now blinks the entire time it's on screen, not just at
-        # the end. Spawn it and ensure is_blinking() is True right away.
-        b = BonusFood(20, 20)
+        # Power-ups blink the entire time they're on screen.
+        b = _power()
         b.spawn_at((1, 1))
         assert b.active
         assert b.is_blinking()
 
     def test_despawn_clears_position(self):
-        b = BonusFood(20, 20)
+        b = _power()
         b.spawn_at((3, 3))
         b.despawn()
         assert not b.active
         assert b.position is None
+
+    def test_spawn_uses_kind_lifetime(self):
+        # When the kind specifies a lifetime, that overrides default_duration.
+        kind = FruitKind(name="x", char="xx", points=1, color=1,
+                         lifetime=2.5)
+        b = PowerUp(20, 20, kinds=(kind,), default_duration=99.0)
+        b.spawn_at((0, 0))
+        assert b.duration == 2.5
+
+    def test_get_effect_reports_kind_effect(self):
+        b = _power(kinds=(SPEED_UP,))
+        b.spawn_at((1, 1))
+        assert b.get_effect() == Effect.SPEED_UP
+
+
+class TestSnakeShrink:
+    def test_shrink_removes_tail(self):
+        s = Snake((5, 5), length=5, direction=Direction.RIGHT)
+        removed = s.shrink(2)
+        assert removed == 2
+        assert len(s.body) == 3
+
+    def test_shrink_preserves_head(self):
+        # Even with a giant ask, snake never falls below 1 segment.
+        s = Snake((5, 5), length=3, direction=Direction.RIGHT)
+        removed = s.shrink(10)
+        assert removed == 2  # only 2 tail segments to remove
+        assert len(s.body) == 1
+
+
+class TestScorePopup:
+    def test_expires_after_deadline(self):
+        p = ScorePopup(position=(0, 0), text="+1", color=2, expires_at=100.0)
+        assert not p.is_expired(now=99.9)
+        assert p.is_expired(now=100.0)
+        assert p.is_expired(now=200.0)
+
+
+# ── BFS distances (the new pathfinder primitive) ──────────────────────────
+
+class TestBfsDistances:
+    def test_distance_increases_with_steps(self):
+        d = bfs_distances([(2, 2)], head=(2, 2),
+                          width=5, height=5, wrap=False)
+        assert d[(2, 3)] == 1
+        assert d[(2, 4)] == 2
+        assert d[(0, 0)] == 4  # |2-0| + |2-0|
+
+    def test_head_not_in_distances(self):
+        d = bfs_distances([(0, 0)], head=(0, 0),
+                          width=3, height=3, wrap=False)
+        assert (0, 0) not in d
+
+    def test_wrap_shortens_corner(self):
+        d = bfs_distances([(0, 0)], head=(0, 0),
+                          width=4, height=4, wrap=True)
+        # corner-to-corner under wrap is at most 2+2=4 but the closest one is
+        # actually (0,3): wraps to dist 1 horizontally.
+        assert d[(0, 3)] == 1
+        assert d[(3, 0)] == 1
 
 
 # ── reachable_cells ───────────────────────────────────────────────────────

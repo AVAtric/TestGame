@@ -12,14 +12,16 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# PyInstaller generates a *.spec next to the entry script
+*.spec
 
 # Test caches
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Runtime data
-snakeclaw/data/highscores.json
+# Runtime data — per-mode high score files written at game over
+snakeclaw/data/highscores*.json
 debug.log
 
 # Claude Code workspace

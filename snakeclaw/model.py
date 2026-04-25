@@ -3,8 +3,9 @@
 import random
 import time
 from collections import deque
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable, List, Set, Tuple, Optional
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
 class Direction(Enum):
@@ -27,6 +28,8 @@ class Action(Enum):
     SELECT = "select"
     MENU_UP = "menu_up"
     MENU_DOWN = "menu_down"
+    YES = "yes"   # Y key — used in confirmation dialogs
+    NO = "no"     # N key — used in confirmation dialogs
 
 
 class GameState(Enum):
@@ -38,6 +41,7 @@ class GameState(Enum):
     ENTER_INITIALS = "enter_initials"
     HIGH_SCORES = "high_scores"
     HELP = "help"
+    CONFIRM_QUIT = "confirm_quit"  # "Are you sure?" overlay before QUIT
     QUIT = "quit"
 
 
@@ -47,13 +51,76 @@ class WallMode(Enum):
     SOLID = "solid"
 
 
-OPPOSITE: dict[Direction, Direction] = {
+class GameMode(Enum):
+    """Top-level game mode picked from the menu.
+
+    MODERN  = the full feature set (fruit variety, power-ups, popups, buffs,
+              wrap walls). The "Start Game" entry.
+    CLASSIC = pure Nokia-3310-style snake: small grid, solid walls, apples
+              only, no power-ups, no popups. The "Classic Game" entry.
+    """
+    MODERN = "modern"
+    CLASSIC = "classic"
+
+
+class Effect(Enum):
+    """Power-up effects applied when eaten."""
+    NONE = "none"
+    SPEED_UP = "speed_up"
+    SLOW_DOWN = "slow_down"
+    SHRINK = "shrink"
+
+
+OPPOSITE: Dict[Direction, Direction] = {
     Direction.UP: Direction.DOWN,
     Direction.DOWN: Direction.UP,
     Direction.LEFT: Direction.RIGHT,
     Direction.RIGHT: Direction.LEFT,
 }
 
+
+# ---------------------------------------------------------------------------
+# Fruit / power-up descriptors
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class FruitKind:
+    """Static description of a fruit or power-up.
+
+    `weight` drives weighted random selection across a kind list.
+    `lifetime` of None means the fruit stays until eaten (regular food);
+    a number means it auto-despawns after that many seconds (power-ups).
+    """
+    name: str
+    char: str
+    points: int
+    color: int
+    weight: float = 1.0
+    effect: Effect = Effect.NONE
+    lifetime: Optional[float] = None
+
+
+def pick_kind(kinds: Sequence[FruitKind]) -> FruitKind:
+    """Weighted random pick among kinds."""
+    weights = [k.weight for k in kinds]
+    return random.choices(list(kinds), weights=weights, k=1)[0]
+
+
+@dataclass
+class ScorePopup:
+    """Floating `+N` text shown briefly where a fruit was eaten."""
+    position: Tuple[int, int]
+    text: str
+    color: int
+    expires_at: float
+
+    def is_expired(self, now: Optional[float] = None) -> bool:
+        return (now if now is not None else time.time()) >= self.expires_at
+
+
+# ---------------------------------------------------------------------------
+# Snake
+# ---------------------------------------------------------------------------
 
 class Snake:
     """Snake representation with movement and collision detection."""
@@ -143,26 +210,48 @@ class Snake:
         """Mark the snake to grow by one segment."""
         self.grow = True
 
+    def shrink(self, amount: int = 1) -> int:
+        """Remove up to `amount` tail segments. Returns the actual number removed.
 
-class Food:
-    """Food position in the playfield."""
+        Always preserves a single head segment so the snake can keep moving.
+        """
+        removed = 0
+        while removed < amount and len(self.body) > 1:
+            self.body.pop()
+            removed += 1
+        return removed
+
+
+# ---------------------------------------------------------------------------
+# Fruit (the regular, always-on-screen fruit) and PowerUp (rare, timed)
+# ---------------------------------------------------------------------------
+
+class Fruit:
+    """Regular fruit on the playfield. One on screen at a time, picks a
+    weighted kind on each placement."""
 
     def __init__(self, width: int, height: int,
-                 initial_position: Optional[Tuple[int, int]] = None,
-                 food_chars: Optional[List[str]] = None):
+                 kinds: Sequence[FruitKind],
+                 initial_position: Optional[Tuple[int, int]] = None):
+        if not kinds:
+            raise ValueError("Fruit requires at least one FruitKind")
         self.width = width
         self.height = height
-        self.position: Tuple[int, int] = (0, 0)
-        self.food_chars = food_chars or ['🟩']
-        self.current_char: str = random.choice(self.food_chars)
-        if initial_position is not None:
-            self.position = initial_position
-        else:
-            self.place()
+        self.kinds: Sequence[FruitKind] = tuple(kinds)
+        self.kind: FruitKind = pick_kind(self.kinds)
+        self.position: Tuple[int, int] = initial_position or (0, 0)
+
+    # -- placement ----------------------------------------------------------
 
     def place(self, pos: Optional[Tuple[int, int]] = None,
-              snake_body: Optional[List[Tuple[int, int]]] = None) -> None:
-        self.current_char = random.choice(self.food_chars)
+              snake_body: Optional[List[Tuple[int, int]]] = None,
+              kind: Optional[FruitKind] = None) -> None:
+        """Place the fruit. `kind` overrides the random pick if given.
+
+        With `pos`, places exactly there; otherwise picks a random cell not
+        on the snake. The kind is re-rolled (or set to `kind`) on every place.
+        """
+        self.kind = kind or pick_kind(self.kinds)
         if pos is not None:
             self.position = pos
             return
@@ -171,27 +260,43 @@ class Food:
                  random.randint(0, self.width - 1))
             if snake_body is None or p not in snake_body:
                 self.position = p
-                break
+                return
+
+    # -- queries ------------------------------------------------------------
 
     def get_position(self) -> Tuple[int, int]:
         return self.position
-    
+
     def get_char(self) -> str:
-        return self.current_char
+        return self.kind.char
+
+    def get_points(self) -> int:
+        return self.kind.points
+
+    def get_color(self) -> int:
+        return self.kind.color
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
-        return self.get_position() == snake_head
+        return self.position == snake_head
 
 
-class BonusFood:
-    """Rare golden bonus food that appears temporarily for extra points."""
+class PowerUp:
+    """Timed power-up. Picks a weighted kind on spawn, applies effects when eaten.
 
-    def __init__(self, width: int, height: int, char: str = '★★',
-                 duration: float = 5.0):
+    Off-screen by default; the engine spawns one occasionally on a reachable
+    cell and despawns it on expiry.
+    """
+
+    def __init__(self, width: int, height: int,
+                 kinds: Sequence[FruitKind],
+                 default_duration: float = 6.0):
+        if not kinds:
+            raise ValueError("PowerUp requires at least one FruitKind")
         self.width = width
         self.height = height
-        self.char = char
-        self.duration = duration
+        self.kinds: Sequence[FruitKind] = tuple(kinds)
+        self.default_duration: float = default_duration
+        self.kind: FruitKind = self.kinds[0]
         self.position: Optional[Tuple[int, int]] = None
         self.spawn_time: float = 0.0
 
@@ -199,13 +304,14 @@ class BonusFood:
     def active(self) -> bool:
         return self.position is not None
 
-    def spawn_at(self, pos: Tuple[int, int]) -> None:
-        """Place bonus food at an explicit position and start its timer.
+    @property
+    def duration(self) -> float:
+        return self.kind.lifetime if self.kind.lifetime is not None else self.default_duration
 
-        Placement strategy (reachability, avoiding the snake / normal food)
-        lives in the engine; this method is the model-level primitive that
-        records *where* and *when* a spawn happened.
-        """
+    def spawn_at(self, pos: Tuple[int, int],
+                 kind: Optional[FruitKind] = None) -> None:
+        """Place the power-up at an explicit position and start its timer."""
+        self.kind = kind or pick_kind(self.kinds)
         self.position = pos
         self.spawn_time = time.time()
 
@@ -217,37 +323,54 @@ class BonusFood:
             return False
         return time.time() - self.spawn_time >= self.duration
 
-    def is_blinking(self, threshold: float = 2.0) -> bool:
-        """True whenever the bonus is on screen — bonus food blinks the whole time
-        it's visible so it stands out against the regular food."""
+    def remaining(self) -> float:
+        """Seconds remaining before this power-up despawns. 0 when inactive."""
+        if not self.active:
+            return 0.0
+        return max(0.0, self.duration - (time.time() - self.spawn_time))
+
+    def is_blinking(self) -> bool:
+        """Power-ups blink the whole time they're visible."""
         return self.active
+
+    def get_char(self) -> str:
+        return self.kind.char
+
+    def get_points(self) -> int:
+        return self.kind.points
+
+    def get_color(self) -> int:
+        return self.kind.color
+
+    def get_effect(self) -> Effect:
+        return self.kind.effect
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
         return self.active and self.position == snake_head
 
 
 # ---------------------------------------------------------------------------
-# Reachability (BFS) — used by the engine to ensure food is always placeable
-# on a cell the snake can actually reach from its current head.
+# Pathfinder — BFS reachability with optional distance map
 # ---------------------------------------------------------------------------
 
-def reachable_cells(snake_body: Iterable[Tuple[int, int]],
-                    head: Tuple[int, int],
-                    width: int, height: int,
-                    wrap: bool) -> Set[Tuple[int, int]]:
-    """Cells reachable from `head` without crossing the snake's body.
+def bfs_distances(snake_body: Iterable[Tuple[int, int]],
+                  head: Tuple[int, int],
+                  width: int, height: int,
+                  wrap: bool) -> Dict[Tuple[int, int], int]:
+    """BFS from `head` through empty cells; returns {cell: distance}.
 
-    Treats every body segment except the head as a wall. Honors `wrap` so
-    toroidal walls don't artificially partition the grid. Returns the set of
-    reachable empty cells (excludes the head itself).
+    Treats every body segment except `head` as a wall. Honors `wrap` so
+    toroidal walls don't partition the grid. The head itself is not in the
+    returned map.
     """
     obstacles = set(snake_body)
     obstacles.discard(head)
-    visited: Set[Tuple[int, int]] = {head}
+    distances: Dict[Tuple[int, int], int] = {head: 0}
     queue: deque = deque([head])
     deltas = ((-1, 0), (1, 0), (0, -1), (0, 1))
     while queue:
         r, c = queue.popleft()
+        d = distances[(r, c)]
         for dr, dc in deltas:
             nr, nc = r + dr, c + dc
             if wrap:
@@ -256,9 +379,17 @@ def reachable_cells(snake_body: Iterable[Tuple[int, int]],
             elif not (0 <= nr < height and 0 <= nc < width):
                 continue
             cell = (nr, nc)
-            if cell in visited or cell in obstacles:
+            if cell in distances or cell in obstacles:
                 continue
-            visited.add(cell)
+            distances[cell] = d + 1
             queue.append(cell)
-    visited.discard(head)
-    return visited
+    distances.pop(head, None)
+    return distances
+
+
+def reachable_cells(snake_body: Iterable[Tuple[int, int]],
+                    head: Tuple[int, int],
+                    width: int, height: int,
+                    wrap: bool) -> Set[Tuple[int, int]]:
+    """Set of cells reachable from `head` (excluding head)."""
+    return set(bfs_distances(snake_body, head, width, height, wrap).keys())

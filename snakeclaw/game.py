@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import time
 
-from .constants import BONUS_FOOD_CHAR, DEFAULT_HEIGHT, DEFAULT_WIDTH
+from .constants import (BONUS_FOOD_CHAR, DEFAULT_HEIGHT, DEFAULT_WIDTH,
+                         MODERN_HEIGHT, MODERN_WIDTH)
 from .engine import GameEngine
 from .model import GameState, WallMode
 from .ui import CursesUI
@@ -17,6 +18,7 @@ _BLOCKING_STATES = frozenset({
     GameState.HELP,
     GameState.GAME_OVER,
     GameState.ENTER_INITIALS,
+    GameState.CONFIRM_QUIT,
 })
 
 
@@ -68,43 +70,86 @@ class SnakeGame:
 
     def _render_overlays(self) -> None:
         """Render overlay screens (menu, high scores, help, etc.)."""
-        state = self.engine.state
+        engine = self.engine
+        state = engine.state
+        # Overlays use the full canvas dimensions; play-area centering only
+        # applies during gameplay.
+        self.ui.set_play_area(MODERN_WIDTH, MODERN_HEIGHT)
 
         if state == GameState.MENU:
-            self.ui.show_menu(self.engine.menu_items,
-                              self.engine.menu_index,
-                              self.engine.high_scores.best)
+            # Best across both modes — gives the player one headline number.
+            best = max(engine.high_scores_for(WallMode.WRAP).best,
+                       engine.high_scores_for(WallMode.SOLID).best)
+            self.ui.show_menu(engine.menu_items, engine.menu_index, best)
         elif state == GameState.HIGH_SCORES:
-            entries = self.engine.high_scores.get_top()
-            self.ui.show_high_scores(entries)
+            self.ui.show_high_scores(
+                wrap_entries=engine.high_scores_for(WallMode.WRAP).get_top(),
+                classic_entries=engine.high_scores_for(WallMode.SOLID).get_top(),
+            )
         elif state == GameState.HELP:
             self.ui.show_help()
         elif state == GameState.GAME_OVER:
-            self.ui.show_game_over(self.engine.score,
-                                   self.engine.high_score)
+            self.ui.show_game_over(
+                engine.score, engine.high_score,
+                streak=engine.session_streak,
+                last_score=engine.last_score,
+                personal_best=engine.is_personal_best,
+                near_miss=engine.near_miss_message,
+            )
         elif state == GameState.ENTER_INITIALS:
-            self.ui.show_enter_initials(self.engine.score,
-                                        self.engine.current_initials,
-                                        self.engine.initials_cursor)
+            self.ui.show_enter_initials(engine.score,
+                                        engine.current_initials,
+                                        engine.initials_cursor)
+        elif state == GameState.CONFIRM_QUIT:
+            self.ui.show_confirm_quit(engine.confirm_quit_index)
 
     def _render_frame(self) -> None:
         """Render game frame for playing or paused state."""
-        bonus = self.engine.bonus
-        bonus_pos = bonus.position if bonus and bonus.active else None
-        bonus_char = bonus.char if bonus else BONUS_FOOD_CHAR
-        bonus_blink = bool(bonus and bonus.is_blinking())
+        engine = self.engine
+        # Re-center the playfield for the current game's dimensions. Cheap
+        # idempotent call — no-op when already at the right size.
+        self.ui.set_play_area(engine.width, engine.height)
+        fruit = engine.fruit
+        power = engine.power_up
+        if power and power.active:
+            bonus_pos = power.position
+            bonus_char = power.get_char()
+            bonus_color = power.get_color()
+            bonus_blink = power.is_blinking()
+            bonus_name = power.kind.name
+            bonus_points = power.get_points()
+            bonus_remaining = power.remaining()
+        else:
+            bonus_pos = None
+            bonus_char = BONUS_FOOD_CHAR
+            bonus_color = 0
+            bonus_blink = False
+            bonus_name = ""
+            bonus_points = 0
+            bonus_remaining = 0.0
         self.ui.render_frame(
-            self.engine.snake.get_body(),
-            self.engine.food.get_position(),
-            self.engine.score,
-            self.engine.high_score,
-            self.engine.level,
-            paused=(self.engine.state == GameState.PAUSED),
-            snake_direction=self.engine.snake.direction,
-            food_char=self.engine.food.get_char(),
+            engine.snake.get_body(),
+            fruit.get_position(),
+            engine.score,
+            engine.high_score,
+            engine.level,
+            paused=(engine.state == GameState.PAUSED),
+            snake_direction=engine.snake.direction,
+            food_char=fruit.get_char(),
+            food_color=fruit.get_color(),
+            food_name=fruit.kind.name,
+            food_points=fruit.get_points(),
             bonus_pos=bonus_pos,
             bonus_char=bonus_char,
+            bonus_color=bonus_color,
             bonus_blink=bonus_blink,
+            bonus_name=bonus_name,
+            bonus_points=bonus_points,
+            bonus_remaining=bonus_remaining,
+            popups=engine.popups,
+            buff_label=engine.speed_buff_label if engine.buff_active else "",
+            buff_remaining=engine.buff_remaining,
+            wall_mode=engine.wall_mode,
         )
 
 

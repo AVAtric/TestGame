@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from snakeclaw.ui import map_key, CursesUI
-from snakeclaw.model import Action, Direction
+from snakeclaw.model import Action, Direction, WallMode
 
 
 class TestMapKey:
@@ -66,7 +66,7 @@ class TestCursesUINoScreen:
         CursesUI().show_menu(["A"], 0)
 
     def test_show_high_scores_no_crash(self):
-        CursesUI().show_high_scores([])
+        CursesUI().show_high_scores()  # both columns empty
 
     def test_show_help_no_crash(self):
         CursesUI().show_help()
@@ -76,6 +76,10 @@ class TestCursesUINoScreen:
 
     def test_show_paused_no_crash(self):
         CursesUI().show_paused()
+
+    def test_show_confirm_quit_no_crash(self):
+        CursesUI().show_confirm_quit()
+        CursesUI().show_confirm_quit(selected_index=1)
 
     def test_wait_for_key_no_crash(self):
         assert CursesUI().wait_for_key() is None
@@ -119,3 +123,69 @@ class TestCursesUIWithMock:
         ui.render_frame([(5, 5), (5, 4)], (3, 3), 10, 20, 2)
         assert ui.stdscr.erase.called
         assert ui.stdscr.refresh.called
+
+    def test_render_frame_with_full_hud(self, _patch_acs):
+        # Smoke-test the full HUD payload (mode badge, fruit info, power-up
+        # countdown, buffs) — exercises the new wide signature end-to-end.
+        ui = _ui()
+        ui.render_frame(
+            [(5, 5)], (3, 3), score=12, high_score=42, level=2,
+            food_char="()", food_color=2, food_name="apple", food_points=1,
+            bonus_pos=(2, 2), bonus_char="XX", bonus_color=3,
+            bonus_blink=True, bonus_name="bonus", bonus_points=5,
+            bonus_remaining=3.4,
+            buff_label="FAST", buff_remaining=4.1,
+            wall_mode=WallMode.SOLID,
+        )
+        assert ui.stdscr.refresh.called
+
+    def test_show_high_scores_dual(self):
+        # New side-by-side rendering path. Stub entries must not crash.
+        from types import SimpleNamespace
+        e = SimpleNamespace(initials="AAA", score=10)
+        ui = _ui()
+        ui.show_high_scores(
+            wrap_entries=[e, e, e],
+            classic_entries=[e],
+        )
+        assert ui.stdscr.refresh.called
+
+    def test_draw_border_per_mode(self):
+        # Both wall modes should call into stdscr without raising.
+        ui = _ui()
+        ui.draw_border(wall_mode=WallMode.WRAP)
+        ui.draw_border(wall_mode=WallMode.SOLID)
+        # The two styles draw different glyphs, so addstr should be called
+        # many times for each — sanity-check the call count.
+        assert ui.stdscr.addstr.call_count > 0
+
+    def test_wrap_border_has_no_arrows(self):
+        # Wrap walls should be pure dots — no `↔` or `↕` glyphs anymore.
+        ui = _ui()
+        ui.draw_border(wall_mode=WallMode.WRAP)
+        text_args = [call.args[2] for call in ui.stdscr.addstr.call_args_list
+                     if len(call.args) >= 3]
+        assert "↔" not in text_args
+        assert "↕" not in text_args
+
+    def test_set_play_area_centers_smaller_field(self):
+        # A small play area (Classic) should compute non-zero origin offsets
+        # so it doesn't render in the corner.
+        ui = CursesUI(width=48, height=30)
+        ui.set_play_area(17, 11)
+        assert ui.play_origin_x > 0
+        assert ui.play_origin_y > 0
+
+    def test_hud_drawn_at_canvas_bottom_not_play_h(self):
+        # Pin the HUD to the canvas bottom so a small Classic playfield (which
+        # would otherwise cause HUD lines to land *inside* the play area)
+        # doesn't overlap with the score bar.
+        ui = _ui()
+        ui.set_play_area(17, 11)  # classic-sized inner playfield
+        ui.draw_hud(0, 0, 1)
+        rows = [call.args[0] for call in ui.stdscr.addstr.call_args_list
+                if len(call.args) >= 1]
+        # canvas_h_cells is 10 (test UI uses height=10); HUD lines are at
+        # rows 12, 13, 14 — strictly below the canvas, never inside the
+        # 11-row Classic playfield region.
+        assert all(r >= ui.canvas_h_cells + 2 for r in rows)

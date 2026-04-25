@@ -1,0 +1,97 @@
+name: Release
+
+# Triggered by pushing a `v*` tag (e.g. `v1.0.0`). Builds a single-file
+# PyInstaller binary on each OS, then attaches all three to a GitHub
+# Release for that tag.
+on:
+  push:
+    tags:
+      - 'v*'
+  # Manual run for testing (no release published — just artifacts).
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Don't kill the other platforms if one fails; we still want partial
+      # artifacts to debug from.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: snakeclaw-linux-x86_64
+            binary: snakeclaw
+          - os: macos-latest
+            asset: snakeclaw-macos-arm64
+            binary: snakeclaw
+          - os: windows-latest
+            asset: snakeclaw-windows-x86_64.exe
+            binary: snakeclaw.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install package + build tools
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[build]"
+
+      - name: Install Windows curses
+        if: runner.os == 'Windows'
+        run: pip install windows-curses
+
+      - name: Run tests
+        # Quick sanity gate so we don't ship a broken binary.
+        shell: bash
+        run: |
+          pip install pytest
+          python -m pytest -q
+
+      - name: Build single-file binary
+        shell: bash
+        run: |
+          pyinstaller --onefile --name snakeclaw \
+            --collect-submodules snakeclaw \
+            main.py
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          mv "dist/${{ matrix.binary }}" "dist/${{ matrix.asset }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    # Only publish when a tag was pushed — manual runs just produce artifacts.
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
