@@ -40,13 +40,6 @@ class GameState(Enum):
     QUIT = "quit"
 
 
-# Keep backward compat aliases used by old tests
-class GameStatus(Enum):
-    PLAYING = "playing"
-    GAME_OVER = "game_over"
-    QUIT = "quit"
-
-
 OPPOSITE: dict[Direction, Direction] = {
     Direction.UP: Direction.DOWN,
     Direction.DOWN: Direction.UP,
@@ -61,6 +54,7 @@ class Snake:
     def __init__(self, start_pos: Tuple[int, int], length: int = 3,
                  direction: Direction = Direction.UP):
         self.direction: Direction = direction
+        self._last_moved_direction: Direction = direction
         self.body: List[Tuple[int, int]] = [start_pos]
         dx, dy = direction.value
         current_pos = start_pos
@@ -75,14 +69,20 @@ class Snake:
         new_head = (head[0] + self.direction.value[0],
                     head[1] + self.direction.value[1])
         self.body.insert(0, new_head)
-        if not self.grow:
-            self.body.pop()
+        if self.grow:
+            self.grow = False
         else:
-            self.grow = False  # Reset grow flag after growing
+            self.body.pop()
+        self._last_moved_direction = self.direction
 
     def set_direction(self, direction: Direction) -> None:
-        """Change direction, preventing 180-degree turns."""
-        if direction == OPPOSITE.get(self.direction):
+        """Change direction, preventing 180-degree turns.
+
+        Validate against the last *moved* direction, not the pending one — otherwise
+        two perpendicular inputs within a single tick (e.g. RIGHT → UP → LEFT)
+        can stack into a 180° turn that drives the head into its own neck.
+        """
+        if direction == OPPOSITE.get(self._last_moved_direction):
             return
         self.direction = direction
 
@@ -95,27 +95,25 @@ class Snake:
     def get_body(self) -> List[Tuple[int, int]]:
         return self.body.copy()
 
+    @staticmethod
+    def _out_of_bounds(pos: Tuple[int, int], width: int, height: int) -> bool:
+        r, c = pos
+        return r < 0 or r >= height or c < 0 or c >= width
+
     def check_collision(self, width: int, height: int) -> bool:
         """Check if the snake has collided with walls or itself."""
         head = self.get_head()
-        if head[0] < 0 or head[0] >= height or head[1] < 0 or head[1] >= width:
-            return True
-        if head in self.body[1:]:
-            return True
-        return False
+        return self._out_of_bounds(head, width, height) or head in self.body[1:]
 
     def check_next_move(self, width: int, height: int) -> bool:
         """Check if the next move would cause a collision."""
         head = self.get_head()
         new_head = (head[0] + self.direction.value[0],
                     head[1] + self.direction.value[1])
-        if new_head[0] < 0 or new_head[0] >= height or \
-           new_head[1] < 0 or new_head[1] >= width:
+        if self._out_of_bounds(new_head, width, height):
             return True
         body_to_check = self.body if self.grow else self.body[:-1]
-        if new_head in body_to_check:
-            return True
-        return False
+        return new_head in body_to_check
 
     def grow_snake(self) -> None:
         """Mark the snake to grow by one segment."""
@@ -140,9 +138,7 @@ class Food:
 
     def place(self, pos: Optional[Tuple[int, int]] = None,
               snake_body: Optional[List[Tuple[int, int]]] = None) -> None:
-        # Pick a new random food character each time we place
         self.current_char = random.choice(self.food_chars)
-        
         if pos is not None:
             self.position = pos
             return
@@ -197,6 +193,12 @@ class BonusFood:
         if not self.active:
             return False
         return time.time() - self.spawn_time >= self.duration
+
+    def is_blinking(self, threshold: float = 2.0) -> bool:
+        """True when fewer than `threshold` seconds remain — for blink rendering."""
+        if not self.active:
+            return False
+        return time.time() - self.spawn_time > self.duration - threshold
 
     def check_eaten(self, snake_head: Tuple[int, int]) -> bool:
         return self.active and self.position == snake_head

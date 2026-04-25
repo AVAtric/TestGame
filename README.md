@@ -65,7 +65,7 @@ python3 -m snakeclaw
 | Speed range | 0.18s → 0.07s per tick |
 | Level up | Every 5 points |
 | Bonus food | ~8% chance after eating, worth 5 pts, lasts 5s |
-| High scores | Top 10, persisted as JSON |
+| High scores | Top 10, persisted atomically as JSON |
 
 ## Architecture
 
@@ -92,7 +92,7 @@ pip install -e ".[test]"
 python3 -m pytest tests/ -v
 ```
 
-115 tests covering model logic, engine state transitions, scoring, and UI key mapping.
+119 tests covering model logic, engine state transitions, high-score persistence, and UI key mapping.
 
 ## Requirements
 

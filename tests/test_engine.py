@@ -75,6 +75,29 @@ class TestHighScoreManager:
         e2 = HighScoreEntry.from_dict(d)
         assert e2.score == 99 and e2.initials == "ZZZ"
 
+    def test_add_skips_non_qualifying(self, tmp_path):
+        # Full board of high scores; a low score must not be appended,
+        # and must not touch disk.
+        p = _tmp_path(tmp_path)
+        mgr = HighScoreManager(path=p, max_entries=2)
+        mgr.add(50, "AAA"); mgr.add(40, "BBB")
+        mtime_before = os.path.getmtime(p)
+        mgr.add(10, "CCC")  # below the cut
+        assert [e.score for e in mgr.get_top()] == [50, 40]
+        assert os.path.getmtime(p) == mtime_before  # no rewrite
+
+    def test_add_zero_score_skipped(self, tmp_path):
+        mgr = HighScoreManager(path=_tmp_path(tmp_path))
+        mgr.add(0, "ZZZ")
+        assert mgr.get_top() == []
+
+    def test_save_is_atomic_no_tmp_left(self, tmp_path):
+        p = _tmp_path(tmp_path)
+        mgr = HighScoreManager(path=p)
+        mgr.add(100, "AAA")
+        # The temp sentinel must not linger after a successful save.
+        assert not os.path.exists(p + ".tmp")
+
 
 # ── GameEngine state transitions ──────────────────────────────────────────
 
@@ -187,7 +210,9 @@ class TestEnginePlaying:
 
     def test_wall_collision_game_over(self, tmp_path):
         e = _playing(tmp_path)
-        # Drive snake into right wall
+        # Pin food off the snake's rightward path so it dies hitting the wall
+        # rather than scoring and routing through ENTER_INITIALS.
+        e.food.place(pos=(0, 0))
         for _ in range(100):
             e.tick()
             if e.state == GameState.GAME_OVER:

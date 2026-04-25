@@ -100,6 +100,15 @@ class TestSnakeDirection:
         s.set_direction(Direction.RIGHT)
         assert s.direction == Direction.LEFT
 
+    def test_reject_180_via_double_input_in_one_tick(self):
+        # Snake going RIGHT. Two perpendicular inputs queued before the next move
+        # must not stack into a 180° turn (RIGHT → UP → LEFT) — that would drive
+        # the head straight back into its own neck on the following tick.
+        s = Snake((5, 5), direction=Direction.RIGHT)
+        s.set_direction(Direction.UP)
+        s.set_direction(Direction.LEFT)
+        assert s.direction == Direction.UP
+
 
 class TestSnakeCollision:
     def test_wall_right(self):

@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
-import time as _time
+import time
 
-from .constants import DEFAULT_HEIGHT, DEFAULT_WIDTH
+from .constants import BONUS_FOOD_CHAR, DEFAULT_HEIGHT, DEFAULT_WIDTH
 from .engine import GameEngine
 from .model import GameState
 from .ui import CursesUI
+
+
+# States where input should block until a key is pressed (overlays/menus).
+_BLOCKING_STATES = frozenset({
+    GameState.MENU,
+    GameState.HIGH_SCORES,
+    GameState.HELP,
+    GameState.GAME_OVER,
+    GameState.ENTER_INITIALS,
+})
 
 
 class SnakeGame:
@@ -27,40 +37,29 @@ class SnakeGame:
             self.ui.stop()
 
     def _loop(self) -> None:
-        last_tick = _time.time()
-
-        # Input handler for blocking states (menu overlays)
-        blocking_inputs = {
-            GameState.MENU: lambda: self.ui.wait_for_key(),
-            GameState.HIGH_SCORES: lambda: self.ui.wait_for_key(),
-            GameState.HELP: lambda: self.ui.wait_for_key(),
-            GameState.GAME_OVER: lambda: self.ui.wait_for_key(),
-            GameState.ENTER_INITIALS: lambda: self.ui.wait_for_key(),
-        }
+        last_tick = time.time()
 
         while self.engine.state != GameState.QUIT:
             state = self.engine.state
+            blocking = state in _BLOCKING_STATES
 
-            # --- Menu / overlays (blocking input) ---
-            inp = blocking_inputs.get(state, self.ui.get_input)
-
-            # Render before input for overlays
-            if state in blocking_inputs:
+            if blocking:
                 self._render_overlays()
+                inp = self.ui.wait_for_key()
+            else:
+                inp = self.ui.get_input()
 
-            inp = inp()
             self.engine.handle_input(inp)
 
             # --- Playing / Paused (non-blocking input) ---
             if state == GameState.PLAYING:
-                now = _time.time()
-                elapsed = now - last_tick
-                if elapsed >= self.engine.tick_rate:
+                now = time.time()
+                if now - last_tick >= self.engine.tick_rate:
                     self.engine.tick()
                     last_tick = now
             else:
                 # Reset tick timer when not playing to avoid burst on resume
-                last_tick = _time.time()
+                last_tick = time.time()
 
             # --- Playing / Paused (render) ---
             if state in (GameState.PLAYING, GameState.PAUSED):
@@ -89,27 +88,23 @@ class SnakeGame:
 
     def _render_frame(self) -> None:
         """Render game frame for playing or paused state."""
-        state = self.engine.state
-        if state in (GameState.PLAYING, GameState.PAUSED):
-            bonus = self.engine.bonus
-            bonus_pos = bonus.position if bonus and bonus.active else None
-            bonus_char = bonus.char if bonus else '★★'
-            # Blink when < 2s remaining
-            bonus_blink = (bonus and bonus.active and
-                           _time.time() - bonus.spawn_time > bonus.duration - 2.0)
-            self.ui.render_frame(
-                self.engine.snake.get_body(),
-                self.engine.food.get_position(),
-                self.engine.score,
-                self.engine.high_score,
-                self.engine.level,
-                paused=(self.engine.state == GameState.PAUSED),
-                snake_direction=self.engine.snake.direction,
-                food_char=self.engine.food.get_char(),
-                bonus_pos=bonus_pos,
-                bonus_char=bonus_char,
-                bonus_blink=bonus_blink,
-            )
+        bonus = self.engine.bonus
+        bonus_pos = bonus.position if bonus and bonus.active else None
+        bonus_char = bonus.char if bonus else BONUS_FOOD_CHAR
+        bonus_blink = bool(bonus and bonus.is_blinking())
+        self.ui.render_frame(
+            self.engine.snake.get_body(),
+            self.engine.food.get_position(),
+            self.engine.score,
+            self.engine.high_score,
+            self.engine.level,
+            paused=(self.engine.state == GameState.PAUSED),
+            snake_direction=self.engine.snake.direction,
+            food_char=self.engine.food.get_char(),
+            bonus_pos=bonus_pos,
+            bonus_char=bonus_char,
+            bonus_blink=bonus_blink,
+        )
 
 
 def main():

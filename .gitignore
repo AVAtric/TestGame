@@ -6,3 +6,4 @@ tests/__pycache__
 snakeclaw/__pycache__
 snakeclaw/data/highscores.json
 debug.log
+.claude

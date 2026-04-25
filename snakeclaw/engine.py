@@ -61,13 +61,21 @@ class HighScoreManager:
             if not isinstance(data, list):
                 data = []
             self._scores = [HighScoreEntry.from_dict(e) for e in data]
-        except (FileNotFoundError, json.JSONDecodeError, TypeError, KeyError):
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError,
+                TypeError, KeyError, ValueError):
             self._scores = []
 
     def save(self) -> None:
+        """Persist scores atomically — write to a temp file, then rename.
+
+        Why: a crash or kill mid-write would otherwise leave a truncated/empty
+        JSON file and silently wipe the leaderboard on next load.
+        """
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, "w") as fh:
+        tmp_path = self.path + ".tmp"
+        with open(tmp_path, "w") as fh:
             json.dump([e.to_dict() for e in self._scores], fh, indent=2)
+        os.replace(tmp_path, self.path)
 
     # -- queries -------------------------------------------------------------
 
@@ -87,6 +95,9 @@ class HighScoreManager:
     # -- mutations -----------------------------------------------------------
 
     def add(self, score: int, initials: str = "---") -> None:
+        """Add a score if it qualifies for the leaderboard. No-op otherwise."""
+        if not self.is_high_score(score):
+            return
         entry = HighScoreEntry(score=score, timestamp=time.time(),
                                initials=initials)
         self._scores.append(entry)
@@ -128,11 +139,14 @@ class GameEngine:
 
     @property
     def tick_rate(self) -> float:
-        return SPEED_LEVELS.get(self.level, 0.07)
+        return SPEED_LEVELS[self.level]
 
     @property
     def high_score(self) -> int:
         return max(self.high_scores.best, self.score)
+
+    def _recompute_level(self) -> None:
+        self.level = min(len(SPEED_LEVELS), 1 + self.score // POINTS_PER_LEVEL)
 
     # -- init / reset --------------------------------------------------------
 
@@ -140,7 +154,6 @@ class GameEngine:
         self.snake = Snake((self.height // 2, self.width // 4),
                            length=INITIAL_SNAKE_LENGTH, direction=Direction.RIGHT)
         self.food = Food(self.width, self.height, food_chars=FOOD_CHARS)
-        # Ensure food not on snake
         self.food.place(snake_body=self.snake.get_body())
         self.bonus = BonusFood(self.width, self.height,
                                char=BONUS_FOOD_CHAR,
@@ -264,50 +277,49 @@ class GameEngine:
         if self.state != GameState.PLAYING or self.snake is None:
             return
 
-        # Expire bonus food if timed out
         if self.bonus and self.bonus.is_expired():
             self.bonus.despawn()
 
-        # Collision check before move
         if self.snake.check_next_move(self.width, self.height):
-            # Check if it's a high score
-            if self.high_scores.is_high_score(self.score):
-                # Reset initials entry state
-                self.current_initials = ['A'] * INITIALS_LENGTH
-                self.initials_cursor = 0
-                self.state = GameState.ENTER_INITIALS
-            else:
-                self.state = GameState.GAME_OVER
-                if self.score > 0:
-                    self.high_scores.add(self.score, '---')
+            self._on_collision()
             return
 
-        # Check food before moving
         head = self.snake.get_head()
         next_head = (head[0] + self.snake.direction.value[0],
                      head[1] + self.snake.direction.value[1])
 
-        ate_normal = False
-        if self.food.check_eaten(next_head):
+        ate_normal = self.food.check_eaten(next_head)
+        if ate_normal:
             self.score += 1
             self.snake.grow_snake()
             self.food.place(snake_body=self.snake.get_body())
-            self.level = min(len(SPEED_LEVELS),
-                             1 + self.score // POINTS_PER_LEVEL)
-            ate_normal = True
 
-        # Check bonus food
-        if self.bonus and self.bonus.check_eaten(next_head):
+        ate_bonus = self.bonus is not None and self.bonus.check_eaten(next_head)
+        if ate_bonus:
             self.score += BONUS_FOOD_POINTS
             self.snake.grow_snake()
             self.bonus.despawn()
-            self.level = min(len(SPEED_LEVELS),
-                             1 + self.score // POINTS_PER_LEVEL)
+
+        if ate_normal or ate_bonus:
+            self._recompute_level()
 
         self.snake.move()
 
-        # Random chance to spawn bonus after eating normal food
         if ate_normal and self.bonus and not self.bonus.active:
             if random.random() < BONUS_FOOD_CHANCE:
                 self.bonus.spawn(self.snake.get_body(),
                                  self.food.get_position())
+
+    def _on_collision(self) -> None:
+        """Handle the snake hitting a wall or itself.
+
+        Routes to ENTER_INITIALS for qualifying scores so the player can
+        record their initials, otherwise straight to GAME_OVER. add() in
+        HighScoreManager is itself defensive — it no-ops on non-qualifiers.
+        """
+        if self.high_scores.is_high_score(self.score):
+            self.current_initials = ['A'] * INITIALS_LENGTH
+            self.initials_cursor = 0
+            self.state = GameState.ENTER_INITIALS
+        else:
+            self.state = GameState.GAME_OVER
